@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * CFHER planet logo — rotating Earth with continent reliefs.
+ * FIFHER planet logo — rotating Earth with continent reliefs.
  * Continents and atmosphere tint themselves to the active accent color via CSS vars.
  *
  * Implementation: a horizontal strip with 2× the world map is animated with a
@@ -13,7 +13,7 @@ export function PlanetLogo({ className, size = 32 }: { className?: string; size?
     <div
       className={cn("relative shrink-0 overflow-visible", className)}
       style={{ width: size, height: size }}
-      aria-label="CFHER"
+      aria-label="FIFHER"
       role="img"
     >
       {/* Outer glow / atmosphere */}
