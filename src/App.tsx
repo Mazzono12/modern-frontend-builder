@@ -15,6 +15,7 @@ import Analytics from "./pages/Analytics.tsx";
 import Pipeline from "./pages/Pipeline.tsx";
 import Contacts from "./pages/Contacts.tsx";
 import Settings from "./pages/Settings.tsx";
+import Integrations from "./pages/Integrations.tsx";
 import { ComingSoon } from "./components/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="contacts" element={<Contacts />} />
               <Route path="templates" element={<ComingSoon title="Templates" description="Mensagens aprovadas pela Meta." />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="integrations" element={<Integrations />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

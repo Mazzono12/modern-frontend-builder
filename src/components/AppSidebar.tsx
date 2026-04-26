@@ -10,6 +10,7 @@ import {
   FileText,
   Settings,
   KanbanSquare,
+  Plug,
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,6 +41,7 @@ const main = [
 const secondary = [
   { title: "Contatos", url: "/app/contacts", icon: Users },
   { title: "Templates", url: "/app/templates", icon: FileText },
+  { title: "Integrações", url: "/app/integrations", icon: Plug },
   { title: "Configurações", url: "/app/settings", icon: Settings },
 ];
 
