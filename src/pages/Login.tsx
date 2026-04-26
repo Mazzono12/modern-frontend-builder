@@ -1,19 +1,50 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, ArrowRight, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const onSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate("/app", { replace: true });
+    });
+  }, [navigate]);
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => navigate("/app"), 600);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/app` },
+        });
+        if (error) throw error;
+        toast.success("Conta criada. Verifique seu e-mail se solicitado.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+      navigate("/app", { replace: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao autenticar";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen grid lg:grid-cols-[1fr_1.1fr] bg-background">
