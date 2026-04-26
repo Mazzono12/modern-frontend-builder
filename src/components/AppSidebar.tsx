@@ -62,7 +62,7 @@ export function AppSidebar() {
           <PlanetLogo size={32} />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-display font-semibold tracking-tight">CFHER</span>
+              <span className="text-sm font-display font-semibold tracking-tight">FIFHER</span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Workspace · Acme</span>
             </div>
           )}
