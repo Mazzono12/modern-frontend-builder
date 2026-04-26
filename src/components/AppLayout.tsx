@@ -1,10 +1,12 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Search, Bell, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { FloatingChatbot } from "@/components/FloatingChatbot";
+import { supabase } from "@/integrations/supabase/client";
 
 const titles: Record<string, { title: string; sub?: string }> = {
   "/app": { title: "Dashboard", sub: "Visão executiva da operação" },
@@ -16,12 +18,33 @@ const titles: Record<string, { title: string; sub?: string }> = {
   "/app/analytics": { title: "Analytics", sub: "Métricas e desempenho" },
   "/app/contacts": { title: "Contatos", sub: "CRM da sua base" },
   "/app/templates": { title: "Templates", sub: "Mensagens aprovadas" },
+  "/app/integrations": { title: "Integrações", sub: "Evolution API · WhatsApp" },
   "/app/settings": { title: "Configurações", sub: "Workspace e integrações" },
 };
 
 export function AppLayout() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
   const meta = titles[pathname] ?? { title: "CIFHER" };
+
+  useEffect(() => {
+    let active = true;
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session && active) navigate("/login", { replace: true });
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (!data.session) navigate("/login", { replace: true });
+      else setReady(true);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  if (!ready) return null;
 
   return (
     <SidebarProvider>

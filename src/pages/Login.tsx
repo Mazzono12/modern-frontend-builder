@@ -1,19 +1,50 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, ArrowRight, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const onSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate("/app", { replace: true });
+    });
+  }, [navigate]);
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => navigate("/app"), 600);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/app` },
+        });
+        if (error) throw error;
+        toast.success("Conta criada. Verifique seu e-mail se solicitado.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+      navigate("/app", { replace: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao autenticar";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen grid lg:grid-cols-[1fr_1.1fr] bg-background">
@@ -62,25 +93,33 @@ export default function Login() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight">Entrar na sua conta</h1>
-            <p className="text-sm text-muted-foreground">Use suas credenciais corporativas para continuar.</p>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {mode === "signin" ? "Entrar na sua conta" : "Criar nova conta"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {mode === "signin"
+                ? "Use suas credenciais para continuar."
+                : "Crie sua conta para começar a usar a CIFHER."}
+            </p>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs text-muted-foreground">E-mail</Label>
-              <Input id="email" type="email" defaultValue="admin@admin.com" autoComplete="email" className="h-10 bg-secondary/40 border-border" />
+              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" className="h-10 bg-secondary/40 border-border" />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-xs text-muted-foreground">Senha</Label>
-                <Link to="#" className="text-[11px] text-muted-foreground hover:text-foreground">Esqueceu?</Link>
+                {mode === "signin" && (
+                  <Link to="#" className="text-[11px] text-muted-foreground hover:text-foreground">Esqueceu?</Link>
+                )}
               </div>
-              <Input id="password" type="password" defaultValue="admin" autoComplete="current-password" className="h-10 bg-secondary/40 border-border" />
+              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signin" ? "current-password" : "new-password"} className="h-10 bg-secondary/40 border-border" />
             </div>
 
             <Button type="submit" disabled={loading} className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2 group">
-              {loading ? "Entrando…" : <>Entrar <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></>}
+              {loading ? "Carregando…" : <>{mode === "signin" ? "Entrar" : "Criar conta"} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></>}
             </Button>
 
             <div className="relative py-2">
@@ -88,13 +127,19 @@ export default function Login() {
               <div className="relative flex justify-center"><span className="px-2 bg-background text-[11px] uppercase tracking-wider text-muted-foreground">ou</span></div>
             </div>
 
-            <Button type="button" variant="outline" className="w-full h-10 gap-2 border-border bg-secondary/30 hover:bg-secondary">
-              <Github className="size-4" /> Continuar com SSO
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              className="w-full h-10 gap-2 border-border bg-secondary/30 hover:bg-secondary"
+            >
+              <Github className="size-4" />
+              {mode === "signin" ? "Criar uma conta" : "Já tenho conta — entrar"}
             </Button>
           </form>
 
           <p className="text-xs text-center text-muted-foreground">
-            Não tem conta? <Link to="#" className="text-foreground hover:text-primary">Solicitar acesso</Link>
+            Ao continuar você concorda com nossos termos.
           </p>
         </div>
       </section>
