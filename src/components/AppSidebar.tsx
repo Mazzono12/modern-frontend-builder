@@ -9,7 +9,7 @@ import {
   Users,
   FileText,
   Settings,
-  Sparkles,
+  KanbanSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,11 +24,13 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PlanetLogo } from "@/components/PlanetLogo";
 
 const main = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
   { title: "Inbox", url: "/app/inbox", icon: MessagesSquare, badge: "12" },
+  { title: "Pipeline", url: "/app/pipeline", icon: KanbanSquare },
   { title: "Campanhas", url: "/app/campaigns", icon: Megaphone },
   { title: "Chatbot", url: "/app/chatbot", icon: Bot },
   { title: "Calling & IVR", url: "/app/calling", icon: PhoneCall },
@@ -47,20 +49,20 @@ export function AppSidebar() {
   const { pathname } = useLocation();
 
   const linkBase =
-    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
   const active =
-    "bg-sidebar-accent text-sidebar-accent-foreground font-medium relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-primary before:rounded-r-full";
+    "bg-gradient-to-r from-primary/15 to-transparent text-foreground font-medium relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-primary before:rounded-r-full before:shadow-glow";
+
+  const avatarUrl = typeof window !== "undefined" ? localStorage.getItem("wm-avatar") : null;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="px-3 py-4">
         <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-lg bg-gradient-primary grid place-items-center shrink-0 shadow-glow">
-            <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
-          </div>
+          <PlanetLogo size={32} />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold tracking-tight">Whatomate</span>
+              <span className="text-sm font-display font-semibold tracking-tight">Whatomate</span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Workspace · Acme</span>
             </div>
           )}
@@ -69,7 +71,11 @@ export function AppSidebar() {
 
       <SidebarContent className="px-2">
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Operação</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+              Operação
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {main.map((item) => {
@@ -77,7 +83,11 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <RouterNavLink to={item.url} end={item.end} className={`${linkBase} ${isActive ? active : "text-sidebar-foreground"}`}>
+                      <RouterNavLink
+                        to={item.url}
+                        end={item.end}
+                        className={`${linkBase} ${isActive ? active : "text-sidebar-foreground"}`}
+                      >
                         <item.icon className="size-4 shrink-0" />
                         {!collapsed && (
                           <>
@@ -99,7 +109,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup className="mt-2">
-          {!collapsed && <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Recursos</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+              Recursos
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {secondary.map((item) => {
@@ -107,7 +121,10 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <RouterNavLink to={item.url} className={`${linkBase} ${isActive ? active : "text-sidebar-foreground"}`}>
+                      <RouterNavLink
+                        to={item.url}
+                        className={`${linkBase} ${isActive ? active : "text-sidebar-foreground"}`}
+                      >
                         <item.icon className="size-4 shrink-0" />
                         {!collapsed && <span>{item.title}</span>}
                       </RouterNavLink>
@@ -123,6 +140,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-3">
         <div className="flex items-center gap-2.5">
           <Avatar className="size-8 ring-1 ring-border">
+            {avatarUrl && <AvatarImage src={avatarUrl} alt="Sara" />}
             <AvatarFallback className="bg-secondary text-xs">SR</AvatarFallback>
           </Avatar>
           {!collapsed && (
