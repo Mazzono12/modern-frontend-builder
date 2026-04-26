@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 type Msg = { id: string; from: "bot" | "user"; text: string };
 
 const seed: Msg[] = [
-  { id: "s1", from: "bot", text: "Oi! Sou o assistente Whatomate ✨ Posso ajudar com campanhas, fluxos ou métricas." },
+  { id: "s1", from: "bot", text: "Oi! Sou o assistente CFHER ✨ Posso ajudar com campanhas, fluxos ou métricas." },
 ];
 
 const quickReplies = ["Como criar campanha?", "Ver métricas de hoje", "Treinar chatbot", "Falar com humano"];
@@ -57,7 +57,7 @@ export function FloatingChatbot() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold flex items-center gap-1.5">
-                  Whatomate AI
+                  CFHER AI
                   <Sparkles className="size-3 text-primary" />
                 </div>
                 <div className="text-[11px] text-success flex items-center gap-1.5">

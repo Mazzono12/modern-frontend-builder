@@ -79,7 +79,7 @@ export default function Campaigns() {
                       Status: statusConfig[c.status].label,
                     })),
                     `campanhas-${new Date().toISOString().slice(0, 10)}.pdf`,
-                    { title: "Campanhas · Whatomate" },
+                    { title: "Campanhas · CFHER" },
                   );
                   toast.success("PDF exportado");
                 }}

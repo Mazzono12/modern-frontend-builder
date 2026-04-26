@@ -24,12 +24,12 @@ export default function Landing() {
           <div className="size-8 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
             <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
           </div>
-          <span className="font-semibold tracking-tight">Whatomate</span>
+          <span className="font-semibold tracking-tight">CFHER</span>
         </div>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
           <a href="#stack" className="hover:text-foreground transition-colors">Stack</a>
-          <a href="https://github.com/shridarpatil/whatomate" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
+          <a href="https://github.com/shridarpatil/cfher" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
         </nav>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
@@ -59,7 +59,7 @@ export default function Landing() {
             <Link to="/app">Ver demo ao vivo <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="h-11 px-6 gap-2 border-border bg-secondary/40">
-            <a href="https://github.com/shridarpatil/whatomate" target="_blank" rel="noreferrer"><Github className="size-4" />Estrelar no GitHub</a>
+            <a href="https://github.com/shridarpatil/cfher" target="_blank" rel="noreferrer"><Github className="size-4" />Estrelar no GitHub</a>
           </Button>
         </div>
 
@@ -138,15 +138,15 @@ export default function Landing() {
         <p className="mt-4 text-muted-foreground text-balance">Explore o redesign navegável em segundos. Sem cadastro, sem fricção.</p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 px-6 gap-2 group">
-            <Link to="/app">Abrir Whatomate <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
+            <Link to="/app">Abrir CFHER <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
           </Button>
         </div>
       </section>
 
       <footer className="relative z-10 border-t border-border mt-12">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div>© 2025 Whatomate · Apache 2.0 License · redesign por Lovable</div>
-          <a href="https://github.com/shridarpatil/whatomate" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-foreground"><Github className="size-3.5" />shridarpatil/whatomate</a>
+          <div>© 2025 CFHER · Apache 2.0 License · redesign por Lovable</div>
+          <a href="https://github.com/shridarpatil/cfher" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-foreground"><Github className="size-3.5" />shridarpatil/cfher</a>
         </div>
       </footer>
     </div>

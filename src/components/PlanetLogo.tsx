@@ -6,7 +6,7 @@ export function PlanetLogo({ className, size = 32 }: { className?: string; size?
     <div
       className={cn("relative shrink-0", className)}
       style={{ width: size, height: size }}
-      aria-label="Whatomate"
+      aria-label="CFHER"
     >
       {/* outer orbit ring */}
       <div
