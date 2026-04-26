@@ -14,7 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      evo_instances: {
+        Row: {
+          created_at: string
+          id: string
+          instance_key: string | null
+          last_sync: string | null
+          name: string
+          phone_number: string | null
+          qr_code: string | null
+          status: Database["public"]["Enums"]["evo_instance_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_key?: string | null
+          last_sync?: string | null
+          name: string
+          phone_number?: string | null
+          qr_code?: string | null
+          status?: Database["public"]["Enums"]["evo_instance_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_key?: string | null
+          last_sync?: string | null
+          name?: string
+          phone_number?: string | null
+          qr_code?: string | null
+          status?: Database["public"]["Enums"]["evo_instance_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      evo_messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          from_me: boolean
+          id: string
+          instance_id: string | null
+          message_timestamp: string
+          message_type: string | null
+          push_name: string | null
+          raw: Json | null
+          remote_jid: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          from_me?: boolean
+          id?: string
+          instance_id?: string | null
+          message_timestamp?: string
+          message_type?: string | null
+          push_name?: string | null
+          raw?: Json | null
+          remote_jid: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          from_me?: boolean
+          id?: string
+          instance_id?: string | null
+          message_timestamp?: string
+          message_type?: string | null
+          push_name?: string | null
+          raw?: Json | null
+          remote_jid?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evo_messages_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "evo_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evo_settings: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          server_url: string
+          updated_at: string
+          user_id: string
+          webhook_secret: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          server_url: string
+          updated_at?: string
+          user_id: string
+          webhook_secret?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          server_url?: string
+          updated_at?: string
+          user_id?: string
+          webhook_secret?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +141,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      evo_instance_status:
+        | "disconnected"
+        | "connecting"
+        | "qr"
+        | "connected"
+        | "error"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +273,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      evo_instance_status: [
+        "disconnected",
+        "connecting",
+        "qr",
+        "connected",
+        "error",
+      ],
+    },
   },
 } as const
