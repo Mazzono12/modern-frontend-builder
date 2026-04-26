@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import planet3d from "@/assets/planet-3d.png";
 
 /**
- * FIFHER planet logo — photorealistic 3D Earth that rotates in a continuous loop
+ * CIFHER planet logo — photorealistic 3D Earth that rotates in a continuous loop
  * and dynamically tints itself to the active accent color via CSS blend modes.
  *
  * Approach:
@@ -18,7 +18,7 @@ export function PlanetLogo({ className, size = 32 }: { className?: string; size?
     <div
       className={cn("relative shrink-0", className)}
       style={{ width: size, height: size }}
-      aria-label="FIFHER"
+      aria-label="CIFHER"
       role="img"
     >
       {/* Outer atmospheric glow */}
@@ -93,15 +93,6 @@ export function PlanetLogo({ className, size = 32 }: { className?: string; size?
         />
       </div>
 
-      {/* Tilted orbital ring */}
-      <div
-        className="absolute inset-[-10%] rounded-full pointer-events-none"
-        style={{
-          border: "1px solid hsl(var(--primary) / 0.4)",
-          transform: "rotateX(72deg) rotateZ(-15deg)",
-          boxShadow: "0 0 10px hsl(var(--primary) / 0.45)",
-        }}
-      />
     </div>
   );
 }
