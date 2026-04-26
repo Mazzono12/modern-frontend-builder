@@ -1,7 +1,7 @@
 // Public webhook endpoint that the Evolution API server calls.
 // URL pattern: /functions/v1/evo-webhook?secret=<webhook_secret>
 // We resolve the user via the secret, store the message and update instance status.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

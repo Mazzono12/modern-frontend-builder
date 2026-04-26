@@ -1,6 +1,6 @@
 // Authenticated proxy to Evolution API.
 // Reads the user's saved server_url + api_key from evo_settings and forwards the call.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
