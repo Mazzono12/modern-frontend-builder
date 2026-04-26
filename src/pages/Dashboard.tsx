@@ -1,8 +1,10 @@
-import { TrendingUp, TrendingDown, MessageSquare, Users, Send, Clock, ArrowUpRight } from "lucide-react";
+import { TrendingUp, TrendingDown, MessageSquare, Users, Send, Clock, ArrowUpRight, Sparkles } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CountUp } from "@/components/CountUp";
+import { FunnelChart } from "@/components/FunnelChart";
+import { motion } from "framer-motion";
 
 const volumeData = Array.from({ length: 14 }, (_, i) => ({
   day: `${i + 1}`,
@@ -18,11 +20,21 @@ const channelData = [
   { name: "NPS", value: 880 },
 ];
 
-const kpis = [
-  { label: "Mensagens hoje", value: "24.812", delta: "+12,4%", up: true, icon: MessageSquare },
-  { label: "Conversas ativas", value: "1.284", delta: "+3,1%", up: true, icon: Users },
-  { label: "Taxa de resposta", value: "94,2%", delta: "−0,6%", up: false, icon: Send },
-  { label: "Tempo médio", value: "1m 42s", delta: "−18s", up: true, icon: Clock },
+type Kpi = { label: string; value: number; suffix?: string; prefix?: string; decimals?: number; delta: string; up: boolean; icon: any };
+
+const kpis: Kpi[] = [
+  { label: "Mensagens hoje", value: 24812, delta: "+12,4%", up: true, icon: MessageSquare },
+  { label: "Conversas ativas", value: 1284, delta: "+3,1%", up: true, icon: Users },
+  { label: "Taxa de resposta", value: 94.2, suffix: "%", decimals: 1, delta: "−0,6%", up: false, icon: Send },
+  { label: "Tempo médio (s)", value: 102, suffix: "s", delta: "−18s", up: true, icon: Clock },
+];
+
+const funnelStages = [
+  { label: "Visitantes do site", value: 48200 },
+  { label: "Iniciaram conversa", value: 18420 },
+  { label: "Qualificados", value: 9180 },
+  { label: "Propostas enviadas", value: 3260 },
+  { label: "Negócios fechados", value: 1148 },
 ];
 
 const agents = [
@@ -30,7 +42,6 @@ const agents = [
   { name: "Diego Almeida", initials: "DA", convos: 128, csat: 4.8, status: "online" },
   { name: "Beatriz Lima", initials: "BL", convos: 117, csat: 4.7, status: "away" },
   { name: "Rafael Souza", initials: "RS", convos: 96, csat: 4.6, status: "online" },
-  { name: "Juliana Mendes", initials: "JM", convos: 84, csat: 4.5, status: "offline" },
 ];
 
 const activity = [
@@ -46,12 +57,17 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Bem-vinda, Sara 👋</h2>
+          <h2 className="text-2xl lg:text-3xl font-display font-semibold tracking-tight">
+            Bem-vinda, <span className="text-gradient">Sara</span> 👋
+          </h2>
           <p className="text-sm text-muted-foreground">Aqui está o pulso da sua operação nos últimos 14 dias.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 border-border bg-secondary/40">Últimos 14 dias</Button>
-          <Button size="sm" className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 gap-1">
+          <Button variant="outline" size="sm" className="h-9 border-border bg-secondary/40 backdrop-blur">
+            Últimos 14 dias
+          </Button>
+          <Button size="sm" className="h-9 bg-gradient-primary text-primary-foreground hover:opacity-90 gap-1 shadow-glow">
+            <Sparkles className="size-3.5" />
             Nova campanha <ArrowUpRight className="size-3.5" />
           </Button>
         </div>
@@ -59,28 +75,40 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((k) => (
-          <div key={k.label} className="surface-card p-5 group hover:border-border-strong transition-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">{k.label}</span>
-              <div className="size-8 rounded-md bg-secondary grid place-items-center text-muted-foreground group-hover:text-primary transition-colors">
+        {kpis.map((k, idx) => (
+          <motion.div
+            key={k.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: idx * 0.06 }}
+            className="glass rounded-xl p-5 group hover:border-primary/40 transition-colors relative overflow-hidden"
+          >
+            <div
+              className="absolute -top-12 -right-12 size-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity blur-2xl"
+              style={{ background: "hsl(var(--primary) / 0.25)" }}
+            />
+            <div className="flex items-center justify-between relative">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider">{k.label}</span>
+              <div className="size-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 grid place-items-center text-primary border border-primary/20">
                 <k.icon className="size-4" />
               </div>
             </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-semibold tracking-tight text-mono">{k.value}</span>
+            <div className="mt-4 flex items-baseline gap-2 relative">
+              <span className="text-3xl font-display font-semibold tracking-tight">
+                <CountUp value={k.value} decimals={k.decimals ?? 0} prefix={k.prefix ?? ""} suffix={k.suffix ?? ""} />
+              </span>
               <span className={`text-xs flex items-center gap-0.5 ${k.up ? "text-success" : "text-destructive"}`}>
                 {k.up ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
                 {k.delta}
               </span>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
-      {/* Charts row */}
+      {/* Funnel + Volume */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="surface-card p-5 lg:col-span-2">
+        <div className="glass rounded-xl p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-medium">Volume de mensagens</h3>
@@ -91,16 +119,16 @@ export default function Dashboard() {
               <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-info" />Recebidas</span>
             </div>
           </div>
-          <div className="h-64">
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={volumeData} margin={{ top: 5, right: 8, left: -16, bottom: 0 }}>
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
                     <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--info))" stopOpacity={0.3} />
+                    <stop offset="0%" stopColor="hsl(var(--info))" stopOpacity={0.4} />
                     <stop offset="100%" stopColor="hsl(var(--info))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -115,39 +143,57 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="surface-card p-5">
+        <div className="glass rounded-xl p-5">
           <div className="mb-4">
-            <h3 className="text-sm font-medium">Por canal</h3>
-            <p className="text-xs text-muted-foreground">Conversas atribuídas</p>
+            <h3 className="text-sm font-medium">Funil de conversão</h3>
+            <p className="text-xs text-muted-foreground">Visitante → Cliente</p>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={channelData} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} width={70} />
-                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <FunnelChart stages={funnelStages} />
+          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Conversão total</span>
+            <span className="text-mono text-primary font-medium">2,38%</span>
           </div>
         </div>
       </div>
 
-      {/* Agents + Activity */}
+      {/* Agents + Activity + Channel bar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="surface-card p-5 lg:col-span-2">
+        <div className="glass rounded-xl p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-medium">Por canal</h3>
+            <p className="text-xs text-muted-foreground">Conversas atribuídas</p>
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={channelData} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" />
+                    <stop offset="100%" stopColor="hsl(var(--primary-glow))" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} width={70} />
+                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="value" fill="url(#bg1)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="glass rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-medium">Agentes em destaque</h3>
-              <p className="text-xs text-muted-foreground">Por volume de conversas hoje</p>
+              <p className="text-xs text-muted-foreground">Volume hoje</p>
             </div>
             <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">Ver todos</Button>
           </div>
           <div className="space-y-1">
             {agents.map((a, i) => (
-              <div key={a.name} className="flex items-center gap-3 px-2 py-2.5 rounded-md hover:bg-secondary/50 transition-colors">
-                <span className="text-xs text-muted-foreground text-mono w-5">{i + 1}</span>
+              <div key={a.name} className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-secondary/50 transition-colors">
+                <span className="text-xs text-muted-foreground text-mono w-4">{i + 1}</span>
                 <div className="relative">
                   <Avatar className="size-8"><AvatarFallback className="bg-secondary text-xs">{a.initials}</AvatarFallback></Avatar>
                   <span className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-background ${
@@ -156,22 +202,14 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{a.name}</div>
-                  <div className="text-[11px] text-muted-foreground capitalize">{a.status}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-mono">{a.convos}</div>
-                  <div className="text-[11px] text-muted-foreground">conversas</div>
-                </div>
-                <div className="text-right w-16">
-                  <div className="text-sm text-mono text-primary">★ {a.csat}</div>
-                  <div className="text-[11px] text-muted-foreground">CSAT</div>
+                  <div className="text-[11px] text-muted-foreground">{a.convos} conv · ★ {a.csat}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="surface-card p-5">
+        <div className="glass rounded-xl p-5">
           <div className="mb-4">
             <h3 className="text-sm font-medium">Atividade recente</h3>
             <p className="text-xs text-muted-foreground">Últimas 24 horas</p>

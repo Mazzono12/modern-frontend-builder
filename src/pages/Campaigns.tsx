@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Plus, Search, MoreHorizontal, Calendar, Users, Send, CheckCircle2, AlertCircle, Pause } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Calendar, Users, Send, CheckCircle2, AlertCircle, Pause, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportToExcel, exportToPDF } from "@/lib/export";
+import { toast } from "sonner";
 
 type Status = "running" | "scheduled" | "completed" | "draft" | "failed" | "paused";
 const statusConfig: Record<Status, { label: string; cls: string; icon: typeof Send }> = {
@@ -31,12 +33,65 @@ export default function Campaigns() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Campanhas</h2>
+          <h2 className="text-2xl lg:text-3xl font-display font-semibold tracking-tight">Campanhas</h2>
           <p className="text-sm text-muted-foreground">Disparos em massa com templates aprovados pela Meta.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 h-9">
-          <Plus className="size-4" /> Nova campanha
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-2">
+                <Download className="size-4" /> Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="glass-strong">
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  exportToExcel(
+                    campaigns.map((c) => ({
+                      Campanha: c.name,
+                      Template: c.template,
+                      Audiência: c.audience,
+                      Enviadas: c.sent,
+                      Total: c.total,
+                      CTR: `${c.ctr}%`,
+                      Status: statusConfig[c.status].label,
+                      Quando: c.date,
+                    })),
+                    `campanhas-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                    "Campanhas",
+                  );
+                  toast.success("Excel exportado");
+                }}
+              >
+                <FileSpreadsheet className="size-4 text-success" /> Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  exportToPDF(
+                    campaigns.map((c) => ({
+                      Campanha: c.name,
+                      Audiência: c.audience,
+                      Enviadas: c.sent,
+                      Total: c.total,
+                      CTR: `${c.ctr}%`,
+                      Status: statusConfig[c.status].label,
+                    })),
+                    `campanhas-${new Date().toISOString().slice(0, 10)}.pdf`,
+                    { title: "Campanhas · Whatomate" },
+                  );
+                  toast.success("PDF exportado");
+                }}
+              >
+                <FileText className="size-4 text-destructive" /> PDF (.pdf)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 h-9 shadow-glow">
+            <Plus className="size-4" /> Nova campanha
+          </Button>
+        </div>
       </div>
 
       {/* Stats strip */}
