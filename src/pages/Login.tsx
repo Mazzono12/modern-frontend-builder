@@ -25,7 +25,7 @@ export default function Login() {
           <div className="size-9 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
             <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
           </div>
-          <span className="font-semibold tracking-tight">FIFHER</span>
+          <span className="font-semibold tracking-tight">CIFHER</span>
         </div>
         <div className="relative space-y-6 max-w-md">
           <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-wider text-primary/80 px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5">
@@ -47,7 +47,7 @@ export default function Login() {
           </div>
         </div>
         <div className="relative text-xs text-muted-foreground/70">
-          © 2025 FIFHER · Apache 2.0 License
+          © 2025 CIFHER · Apache 2.0 License
         </div>
       </aside>
 
@@ -58,7 +58,7 @@ export default function Login() {
             <div className="size-9 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
               <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
             </div>
-            <span className="font-semibold tracking-tight">FIFHER</span>
+            <span className="font-semibold tracking-tight">CIFHER</span>
           </div>
 
           <div className="space-y-2">

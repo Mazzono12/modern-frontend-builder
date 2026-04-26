@@ -21,7 +21,7 @@ const titles: Record<string, { title: string; sub?: string }> = {
 
 export function AppLayout() {
   const { pathname } = useLocation();
-  const meta = titles[pathname] ?? { title: "FIFHER" };
+  const meta = titles[pathname] ?? { title: "CIFHER" };
 
   return (
     <SidebarProvider>
