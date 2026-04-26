@@ -24,7 +24,27 @@ const titles: Record<string, { title: string; sub?: string }> = {
 
 export function AppLayout() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
   const meta = titles[pathname] ?? { title: "CIFHER" };
+
+  useEffect(() => {
+    let active = true;
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session && active) navigate("/login", { replace: true });
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (!data.session) navigate("/login", { replace: true });
+      else setReady(true);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  if (!ready) return null;
 
   return (
     <SidebarProvider>
