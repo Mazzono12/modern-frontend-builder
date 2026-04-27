@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   Filter,
@@ -12,16 +12,31 @@ import {
   Tag,
   CheckCheck,
   Inbox as InboxIcon,
-  AtSign,
   Instagram,
   MessageCircle,
   Mail,
   Facebook,
+  Loader2,
+  Smartphone,
+  X,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  File as FileIcon,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type Channel = "whatsapp" | "instagram" | "messenger" | "email";
 
@@ -46,6 +61,8 @@ type Conv = {
   status: "online" | "offline";
   pinned?: boolean;
   channel: Channel;
+  /** Optional default JID for WhatsApp send. Leave undefined to require manual input. */
+  jid?: string;
 };
 
 const conversations: Conv[] = [
@@ -58,19 +75,81 @@ const conversations: Conv[] = [
   { id: "7", name: "@ana.beatriz", initials: "AB", preview: "Adorei o atendimento de vocês 💜", time: "11:30", tag: "NPS", status: "offline", channel: "instagram" },
 ];
 
-const messages = [
+type ChatMessage = {
+  id: string;
+  from: "me" | "them";
+  text?: string;
+  time: string;
+  media?: { kind: "image" | "video" | "audio" | "document"; name: string; preview?: string };
+  status?: "sending" | "sent" | "error";
+};
+
+const initialMessages: ChatMessage[] = [
   { id: "m1", from: "them", text: "Oi Sara! Vi que vocês têm aquele plano anual com 20% off ainda?", time: "14:38" },
-  { id: "m2", from: "me", text: "Olá Camila! Sim, a promoção segue até sexta. Quer que eu te envie o link de checkout?", time: "14:39" },
+  { id: "m2", from: "me", text: "Olá Camila! Sim, a promoção segue até sexta. Quer que eu te envie o link de checkout?", time: "14:39", status: "sent" },
   { id: "m3", from: "them", text: "Por favor! E se possível também a comparação dos planos.", time: "14:40" },
-  { id: "m4", from: "me", text: "Claro, segue 👇", time: "14:40" },
-  { id: "m5", from: "me", text: "🔗 https://acme.com/checkout/anual-20\n📊 https://acme.com/planos", time: "14:40" },
+  { id: "m4", from: "me", text: "Claro, segue 👇", time: "14:40", status: "sent" },
+  { id: "m5", from: "me", text: "🔗 https://acme.com/checkout/anual-20\n📊 https://acme.com/planos", time: "14:40", status: "sent" },
   { id: "m6", from: "them", text: "Perfeito, vou conferir e te retorno até o fim do dia.", time: "14:42" },
 ];
+
+type EvoInstance = {
+  id: string;
+  name: string;
+  status: string;
+  phone_number: string | null;
+};
+
+/** Best-effort: turns "5511999998888" or "5511999998888@s.whatsapp.net" into a normalized JID. */
+function normalizeJid(input: string): string {
+  const v = input.trim();
+  if (!v) return "";
+  if (v.includes("@")) return v;
+  const digits = v.replace(/\D/g, "");
+  if (!digits) return "";
+  // Group JID heuristic: long numeric ids get @g.us; otherwise individual.
+  return digits.length > 15 ? `${digits}@g.us` : `${digits}@s.whatsapp.net`;
+}
+
+function fileKind(file: File): "image" | "video" | "audio" | "document" {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("audio/")) return "audio";
+  return "document";
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      // strip data URL prefix → keep raw base64
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function nowHHMM() {
+  return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
 export default function Inbox() {
   const [active, setActive] = useState("1");
   const [filter, setFilter] = useState<"todas" | "minhas" | "fechadas">("todas");
   const [channel, setChannel] = useState<Channel | "all">("all");
+
+  const [instances, setInstances] = useState<EvoInstance[]>([]);
+  const [selectedInstance, setSelectedInstance] = useState<string>("");
+  const [destJid, setDestJid] = useState("");
+  const [draft, setDraft] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [thread, setThread] = useState<ChatMessage[]>(initialMessages);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(
     () => conversations.filter((c) => channel === "all" || c.channel === channel),
@@ -87,6 +166,160 @@ export default function Inbox() {
 
   const activeConv = conversations.find((c) => c.id === active) ?? conversations[0];
   const cm = channelMeta[activeConv.channel];
+  const isWhatsapp = activeConv.channel === "whatsapp";
+
+  // Load WhatsApp instances for the sender selector
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase
+        .from("evo_instances")
+        .select("id, name, status, phone_number")
+        .order("created_at", { ascending: false });
+      if (!mounted || !data) return;
+      setInstances(data as EvoInstance[]);
+      // auto-pick a connected instance as default
+      const connected = (data as EvoInstance[]).find((i) => i.status === "connected");
+      if (connected) setSelectedInstance(connected.name);
+      else if (data[0]) setSelectedInstance((data[0] as EvoInstance).name);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Default the destination JID when switching conversations
+  useEffect(() => {
+    setDestJid(activeConv.jid ?? "");
+  }, [active, activeConv.jid]);
+
+  function attachFile() {
+    fileInputRef.current?.click();
+  }
+
+  function onFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.size > 16 * 1024 * 1024) {
+      toast.error("Arquivo maior que 16 MB não é suportado pelo WhatsApp.");
+      return;
+    }
+    setPendingFile(f);
+    if (f.type.startsWith("image/")) {
+      setPendingPreview(URL.createObjectURL(f));
+    } else {
+      setPendingPreview(null);
+    }
+  }
+
+  function clearAttachment() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(null);
+    setPendingPreview(null);
+  }
+
+  async function handleSend() {
+    const text = draft.trim();
+    if (!text && !pendingFile) return;
+
+    if (!isWhatsapp) {
+      toast.error("Envio real está disponível apenas para WhatsApp por enquanto.");
+      return;
+    }
+    if (!selectedInstance) {
+      toast.error("Selecione uma instância WhatsApp conectada.");
+      return;
+    }
+    const jid = normalizeJid(destJid);
+    if (!jid) {
+      toast.error("Informe o número (JID) do destinatário.");
+      return;
+    }
+
+    setSending(true);
+
+    // Optimistic message in the thread
+    const optimisticId = `tmp-${Date.now()}`;
+    const optimistic: ChatMessage = pendingFile
+      ? {
+          id: optimisticId,
+          from: "me",
+          text: text || undefined,
+          time: nowHHMM(),
+          status: "sending",
+          media: {
+            kind: fileKind(pendingFile),
+            name: pendingFile.name,
+            preview: pendingPreview ?? undefined,
+          },
+        }
+      : { id: optimisticId, from: "me", text, time: nowHHMM(), status: "sending" };
+    setThread((t) => [...t, optimistic]);
+
+    try {
+      let proxyBody: Record<string, unknown>;
+      let path: string;
+
+      if (pendingFile) {
+        const base64 = await fileToBase64(pendingFile);
+        const kind = fileKind(pendingFile);
+        path = `/message/sendMedia/${encodeURIComponent(selectedInstance)}`;
+        proxyBody = {
+          number: jid,
+          mediatype: kind,
+          mimetype: pendingFile.type || "application/octet-stream",
+          caption: text || undefined,
+          media: base64,
+          fileName: pendingFile.name,
+        };
+      } else {
+        path = `/message/sendText/${encodeURIComponent(selectedInstance)}`;
+        proxyBody = {
+          number: jid,
+          text,
+          options: { delay: 0, presence: "composing" },
+        };
+      }
+
+      const { data, error } = await supabase.functions.invoke("evo-proxy", {
+        body: { path, method: "POST", body: proxyBody },
+      });
+
+      if (error) throw new Error(error.message);
+      const ok = (data as { ok?: boolean })?.ok;
+      if (ok === false) {
+        const detail = (data as { data?: unknown })?.data;
+        throw new Error(
+          typeof detail === "string"
+            ? detail
+            : (detail as { message?: string })?.message ?? "Falha no envio",
+        );
+      }
+
+      setThread((t) =>
+        t.map((m) => (m.id === optimisticId ? { ...m, status: "sent" } : m)),
+      );
+      setDraft("");
+      clearAttachment();
+      toast.success(pendingFile ? "Mídia enviada" : "Mensagem enviada");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao enviar";
+      setThread((t) =>
+        t.map((m) => (m.id === optimisticId ? { ...m, status: "error" } : m)),
+      );
+      toast.error(msg);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function onTextareaKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void handleSend();
+    }
+  }
 
   return (
     <div className="grid grid-cols-[64px_320px_1fr_320px] h-[calc(100vh-3.5rem)] bg-background">
@@ -215,25 +448,101 @@ export default function Inbox() {
           <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreHorizontal className="size-4" /></Button>
         </header>
 
+        {/* Send-as bar (WhatsApp only) */}
+        {isWhatsapp && (
+          <div className="border-b border-border bg-background-elev/60 px-5 py-2.5 flex flex-wrap items-center gap-2 text-xs">
+            <Smartphone className="size-3.5 text-primary shrink-0" />
+            <span className="text-muted-foreground shrink-0">Enviar de</span>
+            <Select value={selectedInstance} onValueChange={setSelectedInstance}>
+              <SelectTrigger className="h-8 w-[180px] bg-secondary/50 border-border text-xs">
+                <SelectValue placeholder={instances.length ? "Selecione…" : "Nenhuma instância"} />
+              </SelectTrigger>
+              <SelectContent>
+                {instances.map((i) => (
+                  <SelectItem key={i.id} value={i.name} className="text-xs">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          i.status === "connected" ? "bg-success" : "bg-muted-foreground/50"
+                        }`}
+                      />
+                      {i.name}
+                      {i.phone_number && (
+                        <span className="text-muted-foreground text-mono">· {i.phone_number}</span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-muted-foreground shrink-0">para</span>
+            <Input
+              value={destJid}
+              onChange={(e) => setDestJid(e.target.value)}
+              placeholder="55119999... ou 55119999@s.whatsapp.net"
+              className="h-8 w-[260px] bg-secondary/50 border-border text-xs text-mono"
+            />
+            {!instances.some((i) => i.status === "connected") && (
+              <span className="ml-auto text-[10px] text-warning">
+                Nenhuma instância conectada — verifique em Integrações.
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="flex-1 overflow-auto p-6 space-y-4 dot-pattern">
           <div className="text-center">
             <span className="text-[11px] text-muted-foreground bg-background-elev px-2.5 py-1 rounded-full border border-border">
               hoje · 14:38
             </span>
           </div>
-          {messages.map((m) => (
+          {thread.map((m) => (
             <div key={m.id} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[68%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-line shadow-card ${
                   m.from === "me"
                     ? "bg-gradient-to-br from-primary to-primary-glow text-primary-foreground rounded-br-sm"
                     : "bg-card text-card-foreground border border-border rounded-bl-sm"
-                }`}
+                } ${m.status === "error" ? "ring-1 ring-destructive/60" : ""}`}
               >
+                {m.media && (
+                  <div
+                    className={`mb-1.5 rounded-lg overflow-hidden border ${
+                      m.from === "me" ? "border-primary-foreground/20" : "border-border"
+                    }`}
+                  >
+                    {m.media.kind === "image" && m.media.preview ? (
+                      <img src={m.media.preview} alt={m.media.name} className="max-h-56 w-full object-cover" />
+                    ) : (
+                      <div
+                        className={`flex items-center gap-2 px-3 py-2 text-xs ${
+                          m.from === "me" ? "bg-primary-foreground/10" : "bg-secondary"
+                        }`}
+                      >
+                        {m.media.kind === "video" ? (
+                          <FileVideo className="size-4" />
+                        ) : m.media.kind === "audio" ? (
+                          <FileAudio className="size-4" />
+                        ) : m.media.kind === "image" ? (
+                          <FileImage className="size-4" />
+                        ) : (
+                          <FileIcon className="size-4" />
+                        )}
+                        <span className="truncate">{m.media.name}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {m.text}
-                <div className={`flex items-center gap-1 mt-1 text-[10px] ${m.from === "me" ? "text-primary-foreground/70 justify-end" : "text-muted-foreground"}`}>
+                <div
+                  className={`flex items-center gap-1 mt-1 text-[10px] ${
+                    m.from === "me" ? "text-primary-foreground/70 justify-end" : "text-muted-foreground"
+                  }`}
+                >
                   {m.time}
-                  {m.from === "me" && <CheckCheck className="size-3" />}
+                  {m.from === "me" && m.status === "sending" && <Loader2 className="size-3 animate-spin" />}
+                  {m.from === "me" && m.status === "sent" && <CheckCheck className="size-3" />}
+                  {m.from === "me" && m.status === "error" && <span className="text-destructive">falhou</span>}
                 </div>
               </div>
             </div>
@@ -241,16 +550,70 @@ export default function Inbox() {
         </div>
 
         <footer className="p-4 border-t border-border bg-background-elev/40">
+          {pendingFile && (
+            <div className="glass rounded-xl p-2.5 mb-2 flex items-center gap-3">
+              {pendingPreview ? (
+                <img src={pendingPreview} alt="" className="size-12 rounded-md object-cover border border-border" />
+              ) : (
+                <div className="size-12 rounded-md bg-secondary border border-border grid place-items-center">
+                  {fileKind(pendingFile) === "video" ? (
+                    <FileVideo className="size-5 text-muted-foreground" />
+                  ) : fileKind(pendingFile) === "audio" ? (
+                    <FileAudio className="size-5 text-muted-foreground" />
+                  ) : (
+                    <FileIcon className="size-5 text-muted-foreground" />
+                  )}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium truncate">{pendingFile.name}</div>
+                <div className="text-[10px] text-muted-foreground text-mono">
+                  {(pendingFile.size / 1024).toFixed(1)} KB · {fileKind(pendingFile)}
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" className="size-7" onClick={clearAttachment}>
+                <X className="size-3.5" />
+              </Button>
+            </div>
+          )}
           <div className="glass rounded-xl p-2 flex items-end gap-2">
-            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground shrink-0"><Paperclip className="size-4" /></Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              hidden
+              accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip"
+              onChange={onFileSelected}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-muted-foreground shrink-0"
+              onClick={attachFile}
+              disabled={sending}
+              title="Anexar mídia"
+            >
+              <Paperclip className="size-4" />
+            </Button>
             <textarea
               rows={1}
-              placeholder={`Mensagem para ${activeConv.name}…  (use / para respostas prontas)`}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={onTextareaKeyDown}
+              placeholder={`Mensagem para ${activeConv.name}…  (Enter envia · Shift+Enter quebra linha)`}
               className="flex-1 bg-transparent outline-none text-sm py-2 resize-none placeholder:text-muted-foreground"
+              disabled={sending}
             />
-            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground shrink-0"><Smile className="size-4" /></Button>
-            <Button size="icon" className="size-8 bg-gradient-primary hover:opacity-90 text-primary-foreground shrink-0">
-              <Send className="size-4" />
+            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground shrink-0" disabled={sending}>
+              <Smile className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              onClick={handleSend}
+              disabled={sending || (!draft.trim() && !pendingFile)}
+              className="size-8 bg-gradient-primary hover:opacity-90 text-primary-foreground shrink-0"
+              title="Enviar"
+            >
+              {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
             </Button>
           </div>
         </footer>
