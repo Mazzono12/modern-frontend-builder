@@ -312,8 +312,13 @@ export default function Integrations() {
         persistFields: ["qr_code", "status"],
       },
     });
-    if (error) toast.error(error.message);
-    else toast.success("QR atualizado");
+    if (error) {
+      toast.error(error.message);
+      await logEvent(inst.id, inst.name, "qr.refresh_failed", "error", error.message);
+    } else {
+      toast.success("QR atualizado");
+      await logEvent(inst.id, inst.name, "qr.refresh", "info", "QR Code solicitado manualmente");
+    }
     await loadInstances();
     const fresh = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
     if (fresh) setQrInstance(fresh);
@@ -328,12 +333,18 @@ export default function Integrations() {
         persistFields: ["status", "phone_number"],
       },
     });
-    if (error) toast.error(error.message);
-    else toast.success("Status atualizado");
+    if (error) {
+      toast.error(error.message);
+      await logEvent(inst.id, inst.name, "status.check_failed", "error", error.message);
+    } else {
+      toast.success("Status atualizado");
+      await logEvent(inst.id, inst.name, "status.check", "info", "Status verificado manualmente");
+    }
   }
 
   async function deleteInstance(inst: Instance) {
     if (!confirm(`Remover instância "${inst.name}"?`)) return;
+    await logEvent(inst.id, inst.name, "instance.deleted", "warning", "Instância removida");
     // Try to delete on Evo first (best-effort)
     await supabase.functions.invoke("evo-proxy", {
       body: { path: `/instance/delete/${encodeURIComponent(inst.name)}`, method: "DELETE" },
