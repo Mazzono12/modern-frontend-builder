@@ -60,8 +60,18 @@ export default function Integrations() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createStep, setCreateStep] = useState<"idle" | "saving" | "calling" | "qr" | "error">("idle");
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const [qrInstance, setQrInstance] = useState<Instance | null>(null);
+
+  const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
+  const dirty =
+    !!settings && (serverUrl.trim() !== settings.server_url || apiKey.trim() !== settings.api_key);
+  const nameTaken = instances.some(
+    (i) => i.name.toLowerCase() === newName.trim().toLowerCase(),
+  );
+  const nameValid = /^[a-z0-9][a-z0-9-_]{1,30}$/i.test(newName.trim());
 
   const webhookUrl = settings
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evo-webhook?secret=${settings.webhook_secret}`
