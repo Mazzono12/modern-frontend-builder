@@ -115,6 +115,19 @@ export default function Integrations() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!logsInstance) return;
+    const ch = supabase
+      .channel(`evo-events-${logsInstance.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "evo_instance_events", filter: `instance_id=eq.${logsInstance.id}` },
+        (payload) => setEvents((prev) => [payload.new as InstanceEvent, ...prev]),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [logsInstance]);
+
   async function loadAll() {
     await Promise.all([loadSettings(), loadInstances()]);
   }
