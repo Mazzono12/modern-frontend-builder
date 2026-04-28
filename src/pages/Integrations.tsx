@@ -280,16 +280,17 @@ export default function Integrations() {
     if (proxyErr || (proxyRes && (proxyRes as any).ok === false)) {
       // rollback local row
       await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+      const errMsg = proxyErr?.message ??
+          "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.";
+      await logEvent(inst.id, inst.name, "instance.create_failed", "error", errMsg, proxyRes);
       setCreating(false);
       setCreateStep("error");
-      setCreateError(
-        proxyErr?.message ??
-          "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.",
-      );
+      setCreateError(errMsg);
       await loadInstances();
       return;
     }
 
+    await logEvent(inst.id, inst.name, "instance.connecting", "success", "Solicitação enviada à Evolution API");
     setCreateStep("qr");
     await loadInstances();
     const updated = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
