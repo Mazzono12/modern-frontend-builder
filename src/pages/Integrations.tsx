@@ -72,6 +72,10 @@ export default function Integrations() {
 
   const [qrInstance, setQrInstance] = useState<Instance | null>(null);
 
+  const [logsInstance, setLogsInstance] = useState<Instance | null>(null);
+  const [events, setEvents] = useState<InstanceEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+
   const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
   const dirty =
     !!settings && (serverUrl.trim() !== settings.server_url || apiKey.trim() !== settings.api_key);
