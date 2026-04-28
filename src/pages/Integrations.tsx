@@ -441,7 +441,14 @@ export default function Integrations() {
       </section>
 
       {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          if (creating) return;
+          setCreateOpen(o);
+          if (!o) { setCreateError(null); setCreateStep("idle"); setNewName(""); }
+        }}
+      >
         <DialogContent className="glass-strong max-w-md">
           <DialogHeader>
             <DialogTitle>Nova instância WhatsApp</DialogTitle>
@@ -449,21 +456,61 @@ export default function Integrations() {
               Um nome único para identificar esta conexão (ex: <span className="text-mono">vendas-sp</span>).
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5 py-2">
-            <Label className="text-xs text-muted-foreground">Nome da instância</Label>
-            <Input
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value.replace(/[^a-z0-9-_]/gi, ""))}
-              placeholder="vendas-sp"
-              className="bg-secondary/40 border-border text-mono"
-            />
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nome da instância</Label>
+              <Input
+                autoFocus
+                disabled={creating}
+                value={newName}
+                onChange={(e) => { setCreateError(null); setNewName(e.target.value.replace(/[^a-z0-9-_]/gi, "")); }}
+                placeholder="vendas-sp"
+                className="bg-secondary/40 border-border text-mono"
+              />
+              <div className="flex justify-between text-[11px]">
+                <span className={nameTaken ? "text-destructive" : "text-muted-foreground"}>
+                  {nameTaken ? "Nome já existe" : "letras, números, - e _"}
+                </span>
+                <span className="text-muted-foreground text-mono">{newName.length}/31</span>
+              </div>
+            </div>
+
+            {creating && (
+              <div className="space-y-2 surface-card p-3 border border-primary/20 bg-primary/5">
+                <div className="flex items-center gap-2 text-xs text-primary">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>
+                    {createStep === "saving" && "Registrando instância…"}
+                    {createStep === "calling" && "Conectando à Evolution API…"}
+                    {createStep === "qr" && "Gerando QR Code…"}
+                  </span>
+                </div>
+                <Progress
+                  value={createStep === "saving" ? 25 : createStep === "calling" ? 65 : createStep === "qr" ? 95 : 0}
+                  className="h-1.5"
+                />
+              </div>
+            )}
+
+            {createError && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertTitle>Não foi possível criar</AlertTitle>
+                <AlertDescription>{createError}</AlertDescription>
+              </Alert>
+            )}
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={createInstance} disabled={creating || !newName} className="bg-gradient-primary text-primary-foreground gap-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
+            <Button
+              onClick={createInstance}
+              disabled={creating || !newName || !nameValid || nameTaken}
+              className="bg-gradient-primary text-primary-foreground gap-2"
+            >
               {creating && <Loader2 className="size-3.5 animate-spin" />}
-              Criar e gerar QR
+              {creating ? "Criando…" : "Criar e gerar QR"}
             </Button>
           </DialogFooter>
         </DialogContent>
