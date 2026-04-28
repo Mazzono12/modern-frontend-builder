@@ -17,6 +17,9 @@ import {
   CheckCheck,
   AlertTriangle,
   XCircle,
+  Download,
+  FileJson,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +89,9 @@ export default function Integrations() {
   const [logsInstance, setLogsInstance] = useState<Instance | null>(null);
   const [events, setEvents] = useState<InstanceEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [exportFrom, setExportFrom] = useState<string>("");
+  const [exportTo, setExportTo] = useState<string>("");
+  const [exporting, setExporting] = useState(false);
 
   const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
   const dirty =
@@ -177,6 +183,76 @@ export default function Integrations() {
   function openLogs(inst: Instance) {
     setLogsInstance(inst);
     void loadEvents(inst.id);
+  }
+
+  function downloadBlob(content: string, filename: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function csvEscape(v: any): string {
+    if (v === null || v === undefined) return "";
+    const s = typeof v === "string" ? v : JSON.stringify(v);
+    if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }
+
+  async function exportLogs(format: "csv" | "json") {
+    if (!logsInstance) return;
+    setExporting(true);
+    try {
+      let q = supabase
+        .from("evo_instance_events")
+        .select("*")
+        .eq("instance_id", logsInstance.id)
+        .order("created_at", { ascending: false })
+        .limit(10000);
+      if (exportFrom) q = q.gte("created_at", new Date(exportFrom).toISOString());
+      if (exportTo) {
+        const end = new Date(exportTo);
+        end.setHours(23, 59, 59, 999);
+        q = q.lte("created_at", end.toISOString());
+      }
+      const { data, error } = await q;
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      const rows = (data ?? []) as InstanceEvent[];
+      if (rows.length === 0) {
+        toast.info("Nenhum evento no intervalo selecionado");
+        return;
+      }
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const base = `logs-${logsInstance.name}-${stamp}`;
+      if (format === "json") {
+        downloadBlob(JSON.stringify(rows, null, 2), `${base}.json`, "application/json");
+      } else {
+        const headers = ["created_at", "event_type", "level", "message", "instance_name", "details"];
+        const lines = [headers.join(",")];
+        for (const r of rows) {
+          lines.push([
+            csvEscape(r.created_at),
+            csvEscape(r.event_type),
+            csvEscape(r.level),
+            csvEscape(r.message),
+            csvEscape((r as any).instance_name),
+            csvEscape(r.details),
+          ].join(","));
+        }
+        downloadBlob(lines.join("\n"), `${base}.csv`, "text/csv;charset=utf-8");
+      }
+      toast.success(`${rows.length} evento(s) exportado(s)`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function loadInstances() {
@@ -647,15 +723,69 @@ export default function Integrations() {
             <SheetDescription>
               Histórico de eventos da instância (mais recentes primeiro). Atualizado em tempo real.
             </SheetDescription>
-            <div className="flex justify-end pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logsInstance && loadEvents(logsInstance.id)}
-                className="gap-2 h-8"
-              >
-                <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
-              </Button>
+            <div className="pt-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">De</Label>
+                  <Input
+                    type="date"
+                    value={exportFrom}
+                    onChange={(e) => setExportFrom(e.target.value)}
+                    className="h-8 text-xs bg-secondary/40"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Até</Label>
+                  <Input
+                    type="date"
+                    value={exportTo}
+                    onChange={(e) => setExportTo(e.target.value)}
+                    className="h-8 text-xs bg-secondary/40"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logsInstance && loadEvents(logsInstance.id)}
+                  className="gap-2 h-8"
+                >
+                  <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportLogs("csv")}
+                    disabled={exporting}
+                    className="gap-1.5 h-8"
+                  >
+                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileSpreadsheet className="size-3.5" />}
+                    CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportLogs("json")}
+                    disabled={exporting}
+                    className="gap-1.5 h-8"
+                  >
+                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileJson className="size-3.5" />}
+                    JSON
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setExportFrom(""); setExportTo(""); }}
+                    disabled={!exportFrom && !exportTo}
+                    className="h-8 text-xs"
+                    title="Limpar intervalo"
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
             </div>
           </SheetHeader>
 
