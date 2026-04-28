@@ -331,13 +331,28 @@ export default function Integrations() {
           </div>
         )}
 
-        <div className="flex justify-end">
-          <Button onClick={saveSettings} disabled={savingSettings} className="bg-gradient-primary text-primary-foreground gap-2 h-9 shadow-glow">
+        <div className="flex justify-end items-center gap-3">
+          {dirty && (
+            <span className="text-xs text-warning flex items-center gap-1.5">
+              <AlertCircle className="size-3.5" /> Alterações não salvas
+            </span>
+          )}
+          <Button onClick={saveSettings} disabled={savingSettings || !serverUrl || !apiKey} className="bg-gradient-primary text-primary-foreground gap-2 h-9 shadow-glow">
             {savingSettings && <Loader2 className="size-3.5 animate-spin" />}
             Salvar configurações
           </Button>
         </div>
       </section>
+
+      {!settingsValid && (
+        <Alert variant="destructive" className="border-warning/40 bg-warning/10 text-warning [&>svg]:text-warning">
+          <AlertCircle className="size-4" />
+          <AlertTitle>Configurações pendentes</AlertTitle>
+          <AlertDescription className="text-warning/90">
+            Salve a URL do servidor e a API Key para criar instâncias e receber webhooks.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Instances */}
       <section className="space-y-4">
