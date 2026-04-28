@@ -371,8 +371,9 @@ export default function Integrations() {
             </Button>
             <Button
               size="sm"
-              onClick={() => setCreateOpen(true)}
-              disabled={!settings}
+              onClick={() => { setCreateError(null); setCreateOpen(true); }}
+              disabled={!settingsValid || dirty}
+              title={!settingsValid ? "Salve as configurações primeiro" : dirty ? "Salve as alterações antes de criar" : ""}
               className="bg-gradient-primary text-primary-foreground gap-2 h-9 shadow-glow"
             >
               <Plus className="size-4" /> Nova instância
