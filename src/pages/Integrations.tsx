@@ -89,6 +89,9 @@ export default function Integrations() {
   const [logsInstance, setLogsInstance] = useState<Instance | null>(null);
   const [events, setEvents] = useState<InstanceEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [exportFrom, setExportFrom] = useState<string>("");
+  const [exportTo, setExportTo] = useState<string>("");
+  const [exporting, setExporting] = useState(false);
 
   const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
   const dirty =
