@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -58,8 +60,18 @@ export default function Integrations() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createStep, setCreateStep] = useState<"idle" | "saving" | "calling" | "qr" | "error">("idle");
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const [qrInstance, setQrInstance] = useState<Instance | null>(null);
+
+  const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
+  const dirty =
+    !!settings && (serverUrl.trim() !== settings.server_url || apiKey.trim() !== settings.api_key);
+  const nameTaken = instances.some(
+    (i) => i.name.toLowerCase() === newName.trim().toLowerCase(),
+  );
+  const nameValid = /^[a-z0-9][a-z0-9-_]{1,30}$/i.test(newName.trim());
 
   const webhookUrl = settings
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evo-webhook?secret=${settings.webhook_secret}`
@@ -135,29 +147,44 @@ export default function Integrations() {
   }
 
   async function createInstance() {
-    if (!newName.trim()) return;
-    if (!settings) {
-      toast.error("Salve as configurações primeiro");
+    setCreateError(null);
+    if (!settingsValid) {
+      setCreateError("Salve as configurações do servidor antes de criar uma instância.");
       return;
     }
+    if (!nameValid) {
+      setCreateError("Use 2–31 caracteres: letras, números, hífen ou underscore.");
+      return;
+    }
+    if (nameTaken) {
+      setCreateError("Já existe uma instância com esse nome.");
+      return;
+    }
+
     setCreating(true);
+    setCreateStep("saving");
     const { data: userRes } = await supabase.auth.getUser();
     const uid = userRes.user?.id;
-    if (!uid) return;
+    if (!uid) {
+      setCreating(false);
+      setCreateStep("error");
+      setCreateError("Sessão expirada. Faça login novamente.");
+      return;
+    }
 
-    // Insert local row first
     const { data: inst, error: insErr } = await supabase
       .from("evo_instances")
       .insert({ user_id: uid, name: newName.trim(), status: "connecting" })
       .select()
       .maybeSingle();
     if (insErr || !inst) {
-      toast.error(insErr?.message ?? "Erro ao criar");
       setCreating(false);
+      setCreateStep("error");
+      setCreateError(insErr?.message ?? "Erro ao criar registro local.");
       return;
     }
 
-    // Call Evo API to create instance + start QR session
+    setCreateStep("calling");
     const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke("evo-proxy", {
       body: {
         path: "/instance/create",
@@ -175,22 +202,28 @@ export default function Integrations() {
       },
     });
 
+    if (proxyErr || (proxyRes && (proxyRes as any).ok === false)) {
+      // rollback local row
+      await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+      setCreating(false);
+      setCreateStep("error");
+      setCreateError(
+        proxyErr?.message ??
+          "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.",
+      );
+      await loadInstances();
+      return;
+    }
+
+    setCreateStep("qr");
+    await loadInstances();
+    const updated = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
+
     setCreating(false);
     setCreateOpen(false);
     setNewName("");
-
-    if (proxyErr) {
-      toast.error(proxyErr.message);
-      return;
-    }
-    if (proxyRes && (proxyRes as any).ok === false) {
-      toast.error("Falha ao criar instância na Evolution API");
-    } else {
-      toast.success("Instância criada — escaneie o QR Code");
-    }
-    await loadInstances();
-    // Open QR modal automatically
-    const updated = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
+    setCreateStep("idle");
+    toast.success("Instância criada — escaneie o QR Code");
     if (updated) setQrInstance(updated);
   }
 
@@ -298,13 +331,28 @@ export default function Integrations() {
           </div>
         )}
 
-        <div className="flex justify-end">
-          <Button onClick={saveSettings} disabled={savingSettings} className="bg-gradient-primary text-primary-foreground gap-2 h-9 shadow-glow">
+        <div className="flex justify-end items-center gap-3">
+          {dirty && (
+            <span className="text-xs text-warning flex items-center gap-1.5">
+              <AlertCircle className="size-3.5" /> Alterações não salvas
+            </span>
+          )}
+          <Button onClick={saveSettings} disabled={savingSettings || !serverUrl || !apiKey} className="bg-gradient-primary text-primary-foreground gap-2 h-9 shadow-glow">
             {savingSettings && <Loader2 className="size-3.5 animate-spin" />}
             Salvar configurações
           </Button>
         </div>
       </section>
+
+      {!settingsValid && (
+        <Alert variant="destructive" className="border-warning/40 bg-warning/10 text-warning [&>svg]:text-warning">
+          <AlertCircle className="size-4" />
+          <AlertTitle>Configurações pendentes</AlertTitle>
+          <AlertDescription className="text-warning/90">
+            Salve a URL do servidor e a API Key para criar instâncias e receber webhooks.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Instances */}
       <section className="space-y-4">
@@ -323,8 +371,9 @@ export default function Integrations() {
             </Button>
             <Button
               size="sm"
-              onClick={() => setCreateOpen(true)}
-              disabled={!settings}
+              onClick={() => { setCreateError(null); setCreateOpen(true); }}
+              disabled={!settingsValid || dirty}
+              title={!settingsValid ? "Salve as configurações primeiro" : dirty ? "Salve as alterações antes de criar" : ""}
               className="bg-gradient-primary text-primary-foreground gap-2 h-9 shadow-glow"
             >
               <Plus className="size-4" /> Nova instância
@@ -392,7 +441,14 @@ export default function Integrations() {
       </section>
 
       {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          if (creating) return;
+          setCreateOpen(o);
+          if (!o) { setCreateError(null); setCreateStep("idle"); setNewName(""); }
+        }}
+      >
         <DialogContent className="glass-strong max-w-md">
           <DialogHeader>
             <DialogTitle>Nova instância WhatsApp</DialogTitle>
@@ -400,21 +456,61 @@ export default function Integrations() {
               Um nome único para identificar esta conexão (ex: <span className="text-mono">vendas-sp</span>).
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5 py-2">
-            <Label className="text-xs text-muted-foreground">Nome da instância</Label>
-            <Input
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value.replace(/[^a-z0-9-_]/gi, ""))}
-              placeholder="vendas-sp"
-              className="bg-secondary/40 border-border text-mono"
-            />
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nome da instância</Label>
+              <Input
+                autoFocus
+                disabled={creating}
+                value={newName}
+                onChange={(e) => { setCreateError(null); setNewName(e.target.value.replace(/[^a-z0-9-_]/gi, "")); }}
+                placeholder="vendas-sp"
+                className="bg-secondary/40 border-border text-mono"
+              />
+              <div className="flex justify-between text-[11px]">
+                <span className={nameTaken ? "text-destructive" : "text-muted-foreground"}>
+                  {nameTaken ? "Nome já existe" : "letras, números, - e _"}
+                </span>
+                <span className="text-muted-foreground text-mono">{newName.length}/31</span>
+              </div>
+            </div>
+
+            {creating && (
+              <div className="space-y-2 surface-card p-3 border border-primary/20 bg-primary/5">
+                <div className="flex items-center gap-2 text-xs text-primary">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>
+                    {createStep === "saving" && "Registrando instância…"}
+                    {createStep === "calling" && "Conectando à Evolution API…"}
+                    {createStep === "qr" && "Gerando QR Code…"}
+                  </span>
+                </div>
+                <Progress
+                  value={createStep === "saving" ? 25 : createStep === "calling" ? 65 : createStep === "qr" ? 95 : 0}
+                  className="h-1.5"
+                />
+              </div>
+            )}
+
+            {createError && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertTitle>Não foi possível criar</AlertTitle>
+                <AlertDescription>{createError}</AlertDescription>
+              </Alert>
+            )}
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={createInstance} disabled={creating || !newName} className="bg-gradient-primary text-primary-foreground gap-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
+            <Button
+              onClick={createInstance}
+              disabled={creating || !newName || !nameValid || nameTaken}
+              className="bg-gradient-primary text-primary-foreground gap-2"
+            >
               {creating && <Loader2 className="size-3.5 animate-spin" />}
-              Criar e gerar QR
+              {creating ? "Criando…" : "Criar e gerar QR"}
             </Button>
           </DialogFooter>
         </DialogContent>
