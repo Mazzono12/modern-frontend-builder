@@ -723,15 +723,69 @@ export default function Integrations() {
             <SheetDescription>
               Histórico de eventos da instância (mais recentes primeiro). Atualizado em tempo real.
             </SheetDescription>
-            <div className="flex justify-end pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logsInstance && loadEvents(logsInstance.id)}
-                className="gap-2 h-8"
-              >
-                <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
-              </Button>
+            <div className="pt-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">De</Label>
+                  <Input
+                    type="date"
+                    value={exportFrom}
+                    onChange={(e) => setExportFrom(e.target.value)}
+                    className="h-8 text-xs bg-secondary/40"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Até</Label>
+                  <Input
+                    type="date"
+                    value={exportTo}
+                    onChange={(e) => setExportTo(e.target.value)}
+                    className="h-8 text-xs bg-secondary/40"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logsInstance && loadEvents(logsInstance.id)}
+                  className="gap-2 h-8"
+                >
+                  <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportLogs("csv")}
+                    disabled={exporting}
+                    className="gap-1.5 h-8"
+                  >
+                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileSpreadsheet className="size-3.5" />}
+                    CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportLogs("json")}
+                    disabled={exporting}
+                    className="gap-1.5 h-8"
+                  >
+                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileJson className="size-3.5" />}
+                    JSON
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setExportFrom(""); setExportTo(""); }}
+                    disabled={!exportFrom && !exportTo}
+                    className="h-8 text-xs"
+                    title="Limpar intervalo"
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
             </div>
           </SheetHeader>
 
