@@ -53,17 +53,31 @@ Deno.serve(async (req) => {
     instanceId = inst?.id ?? null;
   }
 
+  const logEvent = async (
+    event_type: string,
+    level: "info" | "success" | "warning" | "error",
+    message: string,
+    details?: any,
+  ) => {
+    await admin.from("evo_instance_events").insert({
+      user_id: userId,
+      instance_id: instanceId,
+      instance_name: instanceName,
+      event_type,
+      level,
+      message,
+      details: details ?? null,
+    });
+  };
+
   // Connection state updates
   if (event === "connection.update" || event === "CONNECTION_UPDATE") {
     const state = payload?.data?.state ?? payload?.state;
     const status =
-      state === "open"
-        ? "connected"
-        : state === "connecting"
-        ? "connecting"
-        : state === "close"
-        ? "disconnected"
-        : null;
+      state === "open" ? "connected"
+      : state === "connecting" ? "connecting"
+      : state === "close" ? "disconnected"
+      : null;
     if (status && instanceId) {
       await admin
         .from("evo_instances")
@@ -71,6 +85,12 @@ Deno.serve(async (req) => {
         .eq("id", instanceId)
         .eq("user_id", userId);
     }
+    await logEvent(
+      "connection.update",
+      status === "connected" ? "success" : status === "disconnected" ? "warning" : "info",
+      `Estado de conexão: ${state ?? "desconhecido"}`,
+      { state },
+    );
   }
 
   // QR refresh
@@ -87,6 +107,7 @@ Deno.serve(async (req) => {
         .eq("id", instanceId)
         .eq("user_id", userId);
     }
+    await logEvent("qrcode.updated", "info", "Novo QR Code gerado");
   }
 
   // Incoming / outgoing messages
@@ -133,6 +154,9 @@ Deno.serve(async (req) => {
         raw: m,
         message_timestamp: ts,
       });
+    }
+    if (messages.length) {
+      await logEvent("messages.upsert", "info", `${messages.length} mensagem(ns) recebida(s)`);
     }
   }
 

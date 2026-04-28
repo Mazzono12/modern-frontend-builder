@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      evo_instance_events: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          instance_id: string | null
+          instance_name: string | null
+          level: string
+          message: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          level?: string
+          message?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          level?: string
+          message?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       evo_instances: {
         Row: {
           created_at: string

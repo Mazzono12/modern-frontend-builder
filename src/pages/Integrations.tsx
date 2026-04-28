@@ -12,6 +12,11 @@ import {
   Server,
   KeyRound,
   Smartphone,
+  ScrollText,
+  Info,
+  CheckCheck,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +25,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -38,6 +45,17 @@ type Instance = {
   status: "disconnected" | "connecting" | "qr" | "connected" | "error";
   qr_code: string | null;
   last_sync: string | null;
+};
+
+type EventLevel = "info" | "success" | "warning" | "error";
+type InstanceEvent = {
+  id: string;
+  instance_id: string | null;
+  event_type: string;
+  level: EventLevel;
+  message: string | null;
+  details: any;
+  created_at: string;
 };
 
 const statusMeta: Record<Instance["status"], { label: string; cls: string; Icon: typeof CheckCircle2 }> = {
@@ -64,6 +82,10 @@ export default function Integrations() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [qrInstance, setQrInstance] = useState<Instance | null>(null);
+
+  const [logsInstance, setLogsInstance] = useState<Instance | null>(null);
+  const [events, setEvents] = useState<InstanceEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
 
   const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
   const dirty =
@@ -93,6 +115,19 @@ export default function Integrations() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!logsInstance) return;
+    const ch = supabase
+      .channel(`evo-events-${logsInstance.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "evo_instance_events", filter: `instance_id=eq.${logsInstance.id}` },
+        (payload) => setEvents((prev) => [payload.new as InstanceEvent, ...prev]),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [logsInstance]);
+
   async function loadAll() {
     await Promise.all([loadSettings(), loadInstances()]);
   }
@@ -104,6 +139,44 @@ export default function Integrations() {
       setServerUrl(data.server_url);
       setApiKey(data.api_key);
     }
+  }
+
+  async function logEvent(
+    instanceId: string | null,
+    instanceName: string | null,
+    event_type: string,
+    level: EventLevel,
+    message: string,
+    details?: any,
+  ) {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    await supabase.from("evo_instance_events").insert({
+      user_id: u.user.id,
+      instance_id: instanceId,
+      instance_name: instanceName,
+      event_type,
+      level,
+      message,
+      details: details ?? null,
+    });
+  }
+
+  async function loadEvents(instanceId: string) {
+    setLoadingEvents(true);
+    const { data } = await supabase
+      .from("evo_instance_events")
+      .select("*")
+      .eq("instance_id", instanceId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setEvents((data ?? []) as InstanceEvent[]);
+    setLoadingEvents(false);
+  }
+
+  function openLogs(inst: Instance) {
+    setLogsInstance(inst);
+    void loadEvents(inst.id);
   }
 
   async function loadInstances() {
@@ -184,6 +257,8 @@ export default function Integrations() {
       return;
     }
 
+    await logEvent(inst.id, inst.name, "instance.created", "info", "Instância criada localmente");
+
     setCreateStep("calling");
     const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke("evo-proxy", {
       body: {
@@ -205,16 +280,17 @@ export default function Integrations() {
     if (proxyErr || (proxyRes && (proxyRes as any).ok === false)) {
       // rollback local row
       await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+      const errMsg = proxyErr?.message ??
+          "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.";
+      await logEvent(inst.id, inst.name, "instance.create_failed", "error", errMsg, proxyRes);
       setCreating(false);
       setCreateStep("error");
-      setCreateError(
-        proxyErr?.message ??
-          "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.",
-      );
+      setCreateError(errMsg);
       await loadInstances();
       return;
     }
 
+    await logEvent(inst.id, inst.name, "instance.connecting", "success", "Solicitação enviada à Evolution API");
     setCreateStep("qr");
     await loadInstances();
     const updated = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
@@ -236,8 +312,13 @@ export default function Integrations() {
         persistFields: ["qr_code", "status"],
       },
     });
-    if (error) toast.error(error.message);
-    else toast.success("QR atualizado");
+    if (error) {
+      toast.error(error.message);
+      await logEvent(inst.id, inst.name, "qr.refresh_failed", "error", error.message);
+    } else {
+      toast.success("QR atualizado");
+      await logEvent(inst.id, inst.name, "qr.refresh", "info", "QR Code solicitado manualmente");
+    }
     await loadInstances();
     const fresh = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
     if (fresh) setQrInstance(fresh);
@@ -252,12 +333,18 @@ export default function Integrations() {
         persistFields: ["status", "phone_number"],
       },
     });
-    if (error) toast.error(error.message);
-    else toast.success("Status atualizado");
+    if (error) {
+      toast.error(error.message);
+      await logEvent(inst.id, inst.name, "status.check_failed", "error", error.message);
+    } else {
+      toast.success("Status atualizado");
+      await logEvent(inst.id, inst.name, "status.check", "info", "Status verificado manualmente");
+    }
   }
 
   async function deleteInstance(inst: Instance) {
     if (!confirm(`Remover instância "${inst.name}"?`)) return;
+    await logEvent(inst.id, inst.name, "instance.deleted", "warning", "Instância removida");
     // Try to delete on Evo first (best-effort)
     await supabase.functions.invoke("evo-proxy", {
       body: { path: `/instance/delete/${encodeURIComponent(inst.name)}`, method: "DELETE" },
@@ -429,6 +516,9 @@ export default function Integrations() {
                     <Button variant="outline" size="sm" onClick={() => checkStatus(inst)} className="flex-1 gap-1.5 h-8">
                       <RefreshCw className="size-3.5" /> Status
                     </Button>
+                    <Button variant="ghost" size="icon" onClick={() => openLogs(inst)} className="size-8" title="Ver logs">
+                      <ScrollText className="size-3.5" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => deleteInstance(inst)} className="size-8 text-destructive hover:bg-destructive/10">
                       <Trash2 className="size-3.5" />
                     </Button>
@@ -545,6 +635,86 @@ export default function Integrations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Logs Sheet */}
+      <Sheet open={!!logsInstance} onOpenChange={(o) => !o && setLogsInstance(null)}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col gap-0 p-0">
+          <SheetHeader className="p-6 border-b border-border">
+            <SheetTitle className="flex items-center gap-2">
+              <ScrollText className="size-4 text-primary" />
+              Logs · <span className="text-mono">{logsInstance?.name}</span>
+            </SheetTitle>
+            <SheetDescription>
+              Histórico de eventos da instância (mais recentes primeiro). Atualizado em tempo real.
+            </SheetDescription>
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => logsInstance && loadEvents(logsInstance.id)}
+                className="gap-2 h-8"
+              >
+                <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
+              </Button>
+            </div>
+          </SheetHeader>
+
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-2">
+              {loadingEvents && events.length === 0 ? (
+                <div className="grid place-items-center py-16 text-muted-foreground">
+                  <Loader2 className="size-5 animate-spin" />
+                </div>
+              ) : events.length === 0 ? (
+                <div className="text-center py-16 text-sm text-muted-foreground">
+                  Nenhum evento registrado ainda.
+                </div>
+              ) : (
+                events.map((ev) => {
+                  const meta = levelMeta[ev.level] ?? levelMeta.info;
+                  const LIcon = meta.Icon;
+                  return (
+                    <div
+                      key={ev.id}
+                      className={`surface-card p-3 border-l-2 ${meta.border} space-y-1.5`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <LIcon className={`size-3.5 shrink-0 ${meta.text}`} />
+                          <span className="text-xs font-medium text-mono truncate">
+                            {ev.event_type}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground text-mono shrink-0">
+                          {new Date(ev.created_at).toLocaleString("pt-BR")}
+                        </span>
+                      </div>
+                      {ev.message && (
+                        <p className="text-xs text-foreground/90 leading-relaxed">{ev.message}</p>
+                      )}
+                      {ev.details && (
+                        <details className="text-[11px] text-muted-foreground">
+                          <summary className="cursor-pointer hover:text-foreground">detalhes</summary>
+                          <pre className="text-mono text-[10px] mt-1 p-2 bg-background border border-border rounded overflow-x-auto">
+                            {JSON.stringify(ev.details, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
+
+const levelMeta: Record<EventLevel, { text: string; border: string; Icon: typeof Info }> = {
+  info:    { text: "text-info",        border: "border-l-info",        Icon: Info },
+  success: { text: "text-success",     border: "border-l-success",     Icon: CheckCheck },
+  warning: { text: "text-warning",     border: "border-l-warning",     Icon: AlertTriangle },
+  error:   { text: "text-destructive", border: "border-l-destructive", Icon: XCircle },
+};
