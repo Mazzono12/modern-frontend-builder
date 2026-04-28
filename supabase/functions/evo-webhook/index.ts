@@ -155,6 +155,9 @@ Deno.serve(async (req) => {
         message_timestamp: ts,
       });
     }
+    if (messages.length) {
+      await logEvent("messages.upsert", "info", `${messages.length} mensagem(ns) recebida(s)`);
+    }
   }
 
   return json({ ok: true });
