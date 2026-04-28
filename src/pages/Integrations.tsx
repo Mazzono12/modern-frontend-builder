@@ -635,6 +635,86 @@ export default function Integrations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Logs Sheet */}
+      <Sheet open={!!logsInstance} onOpenChange={(o) => !o && setLogsInstance(null)}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col gap-0 p-0">
+          <SheetHeader className="p-6 border-b border-border">
+            <SheetTitle className="flex items-center gap-2">
+              <ScrollText className="size-4 text-primary" />
+              Logs · <span className="text-mono">{logsInstance?.name}</span>
+            </SheetTitle>
+            <SheetDescription>
+              Histórico de eventos da instância (mais recentes primeiro). Atualizado em tempo real.
+            </SheetDescription>
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => logsInstance && loadEvents(logsInstance.id)}
+                className="gap-2 h-8"
+              >
+                <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
+              </Button>
+            </div>
+          </SheetHeader>
+
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-2">
+              {loadingEvents && events.length === 0 ? (
+                <div className="grid place-items-center py-16 text-muted-foreground">
+                  <Loader2 className="size-5 animate-spin" />
+                </div>
+              ) : events.length === 0 ? (
+                <div className="text-center py-16 text-sm text-muted-foreground">
+                  Nenhum evento registrado ainda.
+                </div>
+              ) : (
+                events.map((ev) => {
+                  const meta = levelMeta[ev.level] ?? levelMeta.info;
+                  const LIcon = meta.Icon;
+                  return (
+                    <div
+                      key={ev.id}
+                      className={`surface-card p-3 border-l-2 ${meta.border} space-y-1.5`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <LIcon className={`size-3.5 shrink-0 ${meta.text}`} />
+                          <span className="text-xs font-medium text-mono truncate">
+                            {ev.event_type}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground text-mono shrink-0">
+                          {new Date(ev.created_at).toLocaleString("pt-BR")}
+                        </span>
+                      </div>
+                      {ev.message && (
+                        <p className="text-xs text-foreground/90 leading-relaxed">{ev.message}</p>
+                      )}
+                      {ev.details && (
+                        <details className="text-[11px] text-muted-foreground">
+                          <summary className="cursor-pointer hover:text-foreground">detalhes</summary>
+                          <pre className="text-mono text-[10px] mt-1 p-2 bg-background border border-border rounded overflow-x-auto">
+                            {JSON.stringify(ev.details, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
+
+const levelMeta: Record<EventLevel, { text: string; border: string; Icon: typeof Info }> = {
+  info:    { text: "text-info",        border: "border-l-info",        Icon: Info },
+  success: { text: "text-success",     border: "border-l-success",     Icon: CheckCheck },
+  warning: { text: "text-warning",     border: "border-l-warning",     Icon: AlertTriangle },
+  error:   { text: "text-destructive", border: "border-l-destructive", Icon: XCircle },
+};
