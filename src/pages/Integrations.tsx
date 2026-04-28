@@ -128,6 +128,44 @@ export default function Integrations() {
     }
   }
 
+  async function logEvent(
+    instanceId: string | null,
+    instanceName: string | null,
+    event_type: string,
+    level: EventLevel,
+    message: string,
+    details?: any,
+  ) {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    await supabase.from("evo_instance_events").insert({
+      user_id: u.user.id,
+      instance_id: instanceId,
+      instance_name: instanceName,
+      event_type,
+      level,
+      message,
+      details: details ?? null,
+    });
+  }
+
+  async function loadEvents(instanceId: string) {
+    setLoadingEvents(true);
+    const { data } = await supabase
+      .from("evo_instance_events")
+      .select("*")
+      .eq("instance_id", instanceId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setEvents((data ?? []) as InstanceEvent[]);
+    setLoadingEvents(false);
+  }
+
+  function openLogs(inst: Instance) {
+    setLogsInstance(inst);
+    void loadEvents(inst.id);
+  }
+
   async function loadInstances() {
     setLoadingInstances(true);
     const { data } = await supabase
