@@ -147,29 +147,44 @@ export default function Integrations() {
   }
 
   async function createInstance() {
-    if (!newName.trim()) return;
-    if (!settings) {
-      toast.error("Salve as configurações primeiro");
+    setCreateError(null);
+    if (!settingsValid) {
+      setCreateError("Salve as configurações do servidor antes de criar uma instância.");
       return;
     }
+    if (!nameValid) {
+      setCreateError("Use 2–31 caracteres: letras, números, hífen ou underscore.");
+      return;
+    }
+    if (nameTaken) {
+      setCreateError("Já existe uma instância com esse nome.");
+      return;
+    }
+
     setCreating(true);
+    setCreateStep("saving");
     const { data: userRes } = await supabase.auth.getUser();
     const uid = userRes.user?.id;
-    if (!uid) return;
+    if (!uid) {
+      setCreating(false);
+      setCreateStep("error");
+      setCreateError("Sessão expirada. Faça login novamente.");
+      return;
+    }
 
-    // Insert local row first
     const { data: inst, error: insErr } = await supabase
       .from("evo_instances")
       .insert({ user_id: uid, name: newName.trim(), status: "connecting" })
       .select()
       .maybeSingle();
     if (insErr || !inst) {
-      toast.error(insErr?.message ?? "Erro ao criar");
       setCreating(false);
+      setCreateStep("error");
+      setCreateError(insErr?.message ?? "Erro ao criar registro local.");
       return;
     }
 
-    // Call Evo API to create instance + start QR session
+    setCreateStep("calling");
     const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke("evo-proxy", {
       body: {
         path: "/instance/create",
@@ -187,22 +202,28 @@ export default function Integrations() {
       },
     });
 
+    if (proxyErr || (proxyRes && (proxyRes as any).ok === false)) {
+      // rollback local row
+      await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+      setCreating(false);
+      setCreateStep("error");
+      setCreateError(
+        proxyErr?.message ??
+          "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.",
+      );
+      await loadInstances();
+      return;
+    }
+
+    setCreateStep("qr");
+    await loadInstances();
+    const updated = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
+
     setCreating(false);
     setCreateOpen(false);
     setNewName("");
-
-    if (proxyErr) {
-      toast.error(proxyErr.message);
-      return;
-    }
-    if (proxyRes && (proxyRes as any).ok === false) {
-      toast.error("Falha ao criar instância na Evolution API");
-    } else {
-      toast.success("Instância criada — escaneie o QR Code");
-    }
-    await loadInstances();
-    // Open QR modal automatically
-    const updated = (await supabase.from("evo_instances").select("*").eq("id", inst.id).maybeSingle()).data as Instance | null;
+    setCreateStep("idle");
+    toast.success("Instância criada — escaneie o QR Code");
     if (updated) setQrInstance(updated);
   }
 
