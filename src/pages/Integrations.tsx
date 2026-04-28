@@ -516,6 +516,9 @@ export default function Integrations() {
                     <Button variant="outline" size="sm" onClick={() => checkStatus(inst)} className="flex-1 gap-1.5 h-8">
                       <RefreshCw className="size-3.5" /> Status
                     </Button>
+                    <Button variant="ghost" size="icon" onClick={() => openLogs(inst)} className="size-8" title="Ver logs">
+                      <ScrollText className="size-3.5" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => deleteInstance(inst)} className="size-8 text-destructive hover:bg-destructive/10">
                       <Trash2 className="size-3.5" />
                     </Button>
