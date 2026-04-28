@@ -47,6 +47,17 @@ type Instance = {
   last_sync: string | null;
 };
 
+type EventLevel = "info" | "success" | "warning" | "error";
+type InstanceEvent = {
+  id: string;
+  instance_id: string | null;
+  event_type: string;
+  level: EventLevel;
+  message: string | null;
+  details: any;
+  created_at: string;
+};
+
 const statusMeta: Record<Instance["status"], { label: string; cls: string; Icon: typeof CheckCircle2 }> = {
   connected:    { label: "Conectado",     cls: "bg-success/15 text-success border-success/30",   Icon: CheckCircle2 },
   qr:           { label: "Aguardando QR", cls: "bg-warning/15 text-warning border-warning/30",   Icon: QrCode },
