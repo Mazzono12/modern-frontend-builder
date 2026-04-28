@@ -257,6 +257,8 @@ export default function Integrations() {
       return;
     }
 
+    await logEvent(inst.id, inst.name, "instance.created", "info", "Instância criada localmente");
+
     setCreateStep("calling");
     const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke("evo-proxy", {
       body: {
