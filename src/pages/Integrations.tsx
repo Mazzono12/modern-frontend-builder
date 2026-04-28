@@ -185,6 +185,76 @@ export default function Integrations() {
     void loadEvents(inst.id);
   }
 
+  function downloadBlob(content: string, filename: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function csvEscape(v: any): string {
+    if (v === null || v === undefined) return "";
+    const s = typeof v === "string" ? v : JSON.stringify(v);
+    if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }
+
+  async function exportLogs(format: "csv" | "json") {
+    if (!logsInstance) return;
+    setExporting(true);
+    try {
+      let q = supabase
+        .from("evo_instance_events")
+        .select("*")
+        .eq("instance_id", logsInstance.id)
+        .order("created_at", { ascending: false })
+        .limit(10000);
+      if (exportFrom) q = q.gte("created_at", new Date(exportFrom).toISOString());
+      if (exportTo) {
+        const end = new Date(exportTo);
+        end.setHours(23, 59, 59, 999);
+        q = q.lte("created_at", end.toISOString());
+      }
+      const { data, error } = await q;
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      const rows = (data ?? []) as InstanceEvent[];
+      if (rows.length === 0) {
+        toast.info("Nenhum evento no intervalo selecionado");
+        return;
+      }
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const base = `logs-${logsInstance.name}-${stamp}`;
+      if (format === "json") {
+        downloadBlob(JSON.stringify(rows, null, 2), `${base}.json`, "application/json");
+      } else {
+        const headers = ["created_at", "event_type", "level", "message", "instance_name", "details"];
+        const lines = [headers.join(",")];
+        for (const r of rows) {
+          lines.push([
+            csvEscape(r.created_at),
+            csvEscape(r.event_type),
+            csvEscape(r.level),
+            csvEscape(r.message),
+            csvEscape((r as any).instance_name),
+            csvEscape(r.details),
+          ].join(","));
+        }
+        downloadBlob(lines.join("\n"), `${base}.csv`, "text/csv;charset=utf-8");
+      }
+      toast.success(`${rows.length} evento(s) exportado(s)`);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function loadInstances() {
     setLoadingInstances(true);
     const { data } = await supabase
