@@ -56,8 +56,17 @@ export type Database = {
           id: string
           instance_key: string | null
           last_sync: string | null
+          meta_access_token: string | null
+          meta_api_version: string
+          meta_app_id: string | null
+          meta_app_secret: string | null
+          meta_display_phone_number: string | null
+          meta_phone_number_id: string | null
+          meta_verify_token: string | null
+          meta_waba_id: string | null
           name: string
           phone_number: string | null
+          provider: Database["public"]["Enums"]["evo_provider"]
           qr_code: string | null
           status: Database["public"]["Enums"]["evo_instance_status"]
           updated_at: string
@@ -68,8 +77,17 @@ export type Database = {
           id?: string
           instance_key?: string | null
           last_sync?: string | null
+          meta_access_token?: string | null
+          meta_api_version?: string
+          meta_app_id?: string | null
+          meta_app_secret?: string | null
+          meta_display_phone_number?: string | null
+          meta_phone_number_id?: string | null
+          meta_verify_token?: string | null
+          meta_waba_id?: string | null
           name: string
           phone_number?: string | null
+          provider?: Database["public"]["Enums"]["evo_provider"]
           qr_code?: string | null
           status?: Database["public"]["Enums"]["evo_instance_status"]
           updated_at?: string
@@ -80,8 +98,17 @@ export type Database = {
           id?: string
           instance_key?: string | null
           last_sync?: string | null
+          meta_access_token?: string | null
+          meta_api_version?: string
+          meta_app_id?: string | null
+          meta_app_secret?: string | null
+          meta_display_phone_number?: string | null
+          meta_phone_number_id?: string | null
+          meta_verify_token?: string | null
+          meta_waba_id?: string | null
           name?: string
           phone_number?: string | null
+          provider?: Database["public"]["Enums"]["evo_provider"]
           qr_code?: string | null
           status?: Database["public"]["Enums"]["evo_instance_status"]
           updated_at?: string
@@ -93,6 +120,7 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
+          external_id: string | null
           from_me: boolean
           id: string
           instance_id: string | null
@@ -101,11 +129,13 @@ export type Database = {
           push_name: string | null
           raw: Json | null
           remote_jid: string
+          status: string | null
           user_id: string
         }
         Insert: {
           content?: string | null
           created_at?: string
+          external_id?: string | null
           from_me?: boolean
           id?: string
           instance_id?: string | null
@@ -114,11 +144,13 @@ export type Database = {
           push_name?: string | null
           raw?: Json | null
           remote_jid: string
+          status?: string | null
           user_id: string
         }
         Update: {
           content?: string | null
           created_at?: string
+          external_id?: string | null
           from_me?: boolean
           id?: string
           instance_id?: string | null
@@ -127,6 +159,7 @@ export type Database = {
           push_name?: string | null
           raw?: Json | null
           remote_jid?: string
+          status?: string | null
           user_id?: string
         }
         Relationships: [
@@ -183,6 +216,7 @@ export type Database = {
         | "qr"
         | "connected"
         | "error"
+      evo_provider: "evolution" | "meta_cloud"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -317,6 +351,7 @@ export const Constants = {
         "connected",
         "error",
       ],
+      evo_provider: ["evolution", "meta_cloud"],
     },
   },
 } as const
