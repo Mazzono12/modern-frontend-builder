@@ -775,9 +775,18 @@ export default function Integrations() {
                 <div key={inst.id} className="surface-card p-5 space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-medium truncate">{inst.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{inst.name}</span>
+                        <Badge variant="outline" className={`text-[9px] uppercase tracking-wider ${
+                          inst.provider === "meta_cloud"
+                            ? "border-info/40 text-info bg-info/10"
+                            : "border-warning/40 text-warning bg-warning/10"
+                        }`}>
+                          {inst.provider === "meta_cloud" ? "Meta" : "Evolution"}
+                        </Badge>
+                      </div>
                       <div className="text-xs text-muted-foreground text-mono mt-0.5">
-                        {inst.phone_number ?? "—"}
+                        {inst.phone_number ?? inst.meta_display_phone_number ?? "—"}
                       </div>
                     </div>
                     <Badge variant="outline" className={`text-[10px] gap-1 ${meta.cls}`}>
@@ -795,8 +804,46 @@ export default function Integrations() {
                     </div>
                   </div>
 
+                  {inst.provider === "meta_cloud" && (
+                    <div className="surface-card p-2.5 border border-info/20 bg-info/5 space-y-1.5">
+                      <div className="text-[10px] uppercase tracking-wider text-info font-medium">Webhook Meta</div>
+                      <div className="flex gap-1.5">
+                        <Input
+                          readOnly
+                          value={metaWebhookUrl(inst)}
+                          className="h-7 text-[10px] text-mono bg-secondary/40"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => { navigator.clipboard.writeText(metaWebhookUrl(inst)); toast.success("URL copiada"); }}
+                        >
+                          <Copy className="size-3" />
+                        </Button>
+                      </div>
+                      {inst.meta_verify_token && (
+                        <div className="flex gap-1.5">
+                          <Input
+                            readOnly
+                            value={inst.meta_verify_token}
+                            className="h-7 text-[10px] text-mono bg-secondary/40"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="size-7"
+                            onClick={() => { navigator.clipboard.writeText(inst.meta_verify_token!); toast.success("Verify token copiado"); }}
+                          >
+                            <Copy className="size-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
-                    {inst.status !== "connected" && (
+                    {inst.provider === "evolution" && inst.status !== "connected" && (
                       <Button variant="outline" size="sm" onClick={() => { setQrInstance(inst); void refreshQr(inst); }} className="flex-1 gap-1.5 h-8">
                         <QrCode className="size-3.5" /> QR
                       </Button>
