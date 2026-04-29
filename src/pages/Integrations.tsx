@@ -91,7 +91,17 @@ export default function Integrations() {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [exportFrom, setExportFrom] = useState<string>("");
   const [exportTo, setExportTo] = useState<string>("");
-  const [exporting, setExporting] = useState(false);
+  const [exportJob, setExportJob] = useState<{
+    id: string;
+    format: "csv" | "json";
+    status: "queued" | "running" | "done" | "error" | "cancelled";
+    processed: number;
+    total: number | null;
+    message?: string;
+    startedAt: number;
+    finishedAt?: number;
+  } | null>(null);
+  const exportCancelRef = (typeof window !== "undefined" ? (window as any) : {}) as { __evoExportCancel?: boolean };
 
   const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
   const dirty =
