@@ -98,6 +98,7 @@ type EvoInstance = {
   name: string;
   status: string;
   phone_number: string | null;
+  provider: "evolution" | "meta_cloud";
 };
 
 /** Best-effort: turns "5511999998888" or "5511999998888@s.whatsapp.net" into a normalized JID. */
@@ -174,7 +175,7 @@ export default function Inbox() {
     (async () => {
       const { data } = await supabase
         .from("evo_instances")
-        .select("id, name, status, phone_number")
+        .select("id, name, status, phone_number, provider")
         .order("created_at", { ascending: false });
       if (!mounted || !data) return;
       setInstances(data as EvoInstance[]);
@@ -258,43 +259,76 @@ export default function Inbox() {
     setThread((t) => [...t, optimistic]);
 
     try {
-      let proxyBody: Record<string, unknown>;
-      let path: string;
+      const inst = instances.find((i) => i.name === selectedInstance);
+      if (!inst) throw new Error("Instância não encontrada");
 
-      if (pendingFile) {
-        const base64 = await fileToBase64(pendingFile);
-        const kind = fileKind(pendingFile);
-        path = `/message/sendMedia/${encodeURIComponent(selectedInstance)}`;
-        proxyBody = {
-          number: jid,
-          mediatype: kind,
-          mimetype: pendingFile.type || "application/octet-stream",
-          caption: text || undefined,
-          media: base64,
-          fileName: pendingFile.name,
-        };
+      if (inst.provider === "meta_cloud") {
+        // Meta Cloud API path
+        const toDigits = jid.replace(/\D/g, "");
+        let metaPayload: Record<string, unknown>;
+        let action: "send_text" | "send_media";
+        if (pendingFile) {
+          action = "send_media";
+          const base64 = await fileToBase64(pendingFile);
+          // Meta requires an HTTPS link or a pre-uploaded media id; data URL is not accepted.
+          // For now, surface a clear error so the user can adapt (e.g. upload to Storage first).
+          if (base64.startsWith("data:")) {
+            throw new Error("Meta exige link HTTPS ou media_id. Hospede o arquivo (ex.: Storage) e use a URL pública.");
+          }
+          metaPayload = {
+            to: toDigits,
+            kind: fileKind(pendingFile),
+            link: base64,
+            caption: text || undefined,
+            filename: pendingFile.name,
+          };
+        } else {
+          action = "send_text";
+          metaPayload = { to: toDigits, body: text };
+        }
+        const { data, error } = await supabase.functions.invoke("meta-proxy", {
+          body: { instance_id: inst.id, action, payload: metaPayload },
+        });
+        if (error) throw new Error(error.message);
+        if ((data as any)?.error) throw new Error((data as any).error);
       } else {
-        path = `/message/sendText/${encodeURIComponent(selectedInstance)}`;
-        proxyBody = {
-          number: jid,
-          text,
-          options: { delay: 0, presence: "composing" },
-        };
-      }
+        // Evolution path (original)
+        let proxyBody: Record<string, unknown>;
+        let path: string;
+        if (pendingFile) {
+          const base64 = await fileToBase64(pendingFile);
+          const kind = fileKind(pendingFile);
+          path = `/message/sendMedia/${encodeURIComponent(selectedInstance)}`;
+          proxyBody = {
+            number: jid,
+            mediatype: kind,
+            mimetype: pendingFile.type || "application/octet-stream",
+            caption: text || undefined,
+            media: base64,
+            fileName: pendingFile.name,
+          };
+        } else {
+          path = `/message/sendText/${encodeURIComponent(selectedInstance)}`;
+          proxyBody = {
+            number: jid,
+            text,
+            options: { delay: 0, presence: "composing" },
+          };
+        }
 
-      const { data, error } = await supabase.functions.invoke("evo-proxy", {
-        body: { path, method: "POST", body: proxyBody },
-      });
-
-      if (error) throw new Error(error.message);
-      const ok = (data as { ok?: boolean })?.ok;
-      if (ok === false) {
-        const detail = (data as { data?: unknown })?.data;
-        throw new Error(
-          typeof detail === "string"
-            ? detail
-            : (detail as { message?: string })?.message ?? "Falha no envio",
-        );
+        const { data, error } = await supabase.functions.invoke("evo-proxy", {
+          body: { path, method: "POST", body: proxyBody },
+        });
+        if (error) throw new Error(error.message);
+        const ok = (data as { ok?: boolean })?.ok;
+        if (ok === false) {
+          const detail = (data as { data?: unknown })?.data;
+          throw new Error(
+            typeof detail === "string"
+              ? detail
+              : (detail as { message?: string })?.message ?? "Falha no envio",
+          );
+        }
       }
 
       setThread((t) =>

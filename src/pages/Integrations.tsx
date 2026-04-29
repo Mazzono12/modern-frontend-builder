@@ -29,6 +29,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -40,14 +42,19 @@ type Settings = {
   webhook_secret: string;
 };
 
+type Provider = "evolution" | "meta_cloud";
 type Instance = {
   id: string;
   name: string;
+  provider: Provider;
   instance_key: string | null;
   phone_number: string | null;
   status: "disconnected" | "connecting" | "qr" | "connected" | "error";
   qr_code: string | null;
   last_sync: string | null;
+  meta_phone_number_id?: string | null;
+  meta_verify_token?: string | null;
+  meta_display_phone_number?: string | null;
 };
 
 type EventLevel = "info" | "success" | "warning" | "error";
@@ -80,6 +87,13 @@ export default function Integrations() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newProvider, setNewProvider] = useState<"evolution" | "meta_cloud">("evolution");
+  const [metaPhoneId, setMetaPhoneId] = useState("");
+  const [metaWabaId, setMetaWabaId] = useState("");
+  const [metaToken, setMetaToken] = useState("");
+  const [metaAppSecret, setMetaAppSecret] = useState("");
+  const [metaAppId, setMetaAppId] = useState("");
+  const [metaApiVersion, setMetaApiVersion] = useState("v21.0");
   const [creating, setCreating] = useState(false);
   const [createStep, setCreateStep] = useState<"idle" | "saving" | "calling" | "qr" | "error">("idle");
   const [createError, setCreateError] = useState<string | null>(null);
@@ -403,8 +417,8 @@ export default function Integrations() {
 
   async function createInstance() {
     setCreateError(null);
-    if (!settingsValid) {
-      setCreateError("Salve as configurações do servidor antes de criar uma instância.");
+    if (newProvider === "evolution" && !settingsValid) {
+      setCreateError("Salve as configurações do servidor Evolution antes de criar uma instância Evolution.");
       return;
     }
     if (!nameValid) {
@@ -414,6 +428,12 @@ export default function Integrations() {
     if (nameTaken) {
       setCreateError("Já existe uma instância com esse nome.");
       return;
+    }
+    if (newProvider === "meta_cloud") {
+      if (!metaPhoneId.trim() || !metaToken.trim()) {
+        setCreateError("Phone Number ID e Access Token são obrigatórios.");
+        return;
+      }
     }
 
     setCreating(true);
@@ -427,9 +447,27 @@ export default function Integrations() {
       return;
     }
 
+    const baseRow: Record<string, unknown> = {
+      user_id: uid,
+      name: newName.trim(),
+      provider: newProvider,
+      status: newProvider === "meta_cloud" ? "connected" : "connecting",
+    };
+    if (newProvider === "meta_cloud") {
+      Object.assign(baseRow, {
+        meta_phone_number_id: metaPhoneId.trim(),
+        meta_waba_id: metaWabaId.trim() || null,
+        meta_access_token: metaToken.trim(),
+        meta_app_secret: metaAppSecret.trim() || null,
+        meta_app_id: metaAppId.trim() || null,
+        meta_api_version: metaApiVersion.trim() || "v21.0",
+        meta_verify_token: crypto.randomUUID().replace(/-/g, ""),
+      });
+    }
+
     const { data: inst, error: insErr } = await supabase
       .from("evo_instances")
-      .insert({ user_id: uid, name: newName.trim(), status: "connecting" })
+      .insert(baseRow as any)
       .select()
       .maybeSingle();
     if (insErr || !inst) {
@@ -439,8 +477,42 @@ export default function Integrations() {
       return;
     }
 
-    await logEvent(inst.id, inst.name, "instance.created", "info", "Instância criada localmente");
+    await logEvent(inst.id, inst.name, "instance.created", "info",
+      `Instância criada (${newProvider === "meta_cloud" ? "Meta Cloud API" : "Evolution"})`);
 
+    // ---- Meta Cloud: nothing else to call; just verify phone info ----
+    if (newProvider === "meta_cloud") {
+      setCreateStep("calling");
+      const { data: probe, error: probeErr } = await supabase.functions.invoke("meta-proxy", {
+        body: { instance_id: inst.id, action: "get_phone_info" },
+      });
+      if (probeErr || (probe as any)?.error) {
+        await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+        const msg = probeErr?.message ?? (probe as any)?.error ?? "Falha ao validar credenciais Meta";
+        await logEvent(inst.id, inst.name, "meta.validate_failed", "error", msg, probe);
+        setCreating(false);
+        setCreateStep("error");
+        setCreateError(msg);
+        await loadInstances();
+        return;
+      }
+      const display = (probe as any)?.data?.display_phone_number ?? null;
+      if (display) {
+        await supabase.from("evo_instances")
+          .update({ meta_display_phone_number: display, phone_number: display })
+          .eq("id", inst.id);
+      }
+      await logEvent(inst.id, inst.name, "meta.connected", "success", "Credenciais Meta validadas", probe);
+
+      setCreating(false);
+      setCreateOpen(false);
+      resetNewForm();
+      toast.success("Instância Meta criada e conectada");
+      await loadInstances();
+      return;
+    }
+
+    // ---- Evolution: original flow ----
     setCreateStep("calling");
     const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke("evo-proxy", {
       body: {
@@ -460,7 +532,6 @@ export default function Integrations() {
     });
 
     if (proxyErr || (proxyRes && (proxyRes as any).ok === false)) {
-      // rollback local row
       await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
       const errMsg = proxyErr?.message ??
           "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.";
@@ -479,13 +550,23 @@ export default function Integrations() {
 
     setCreating(false);
     setCreateOpen(false);
-    setNewName("");
-    setCreateStep("idle");
+    resetNewForm();
     toast.success("Instância criada — escaneie o QR Code");
     if (updated) setQrInstance(updated);
   }
 
+  function resetNewForm() {
+    setNewName("");
+    setCreateStep("idle");
+    setMetaPhoneId(""); setMetaWabaId(""); setMetaToken("");
+    setMetaAppSecret(""); setMetaAppId(""); setMetaApiVersion("v21.0");
+  }
+
   async function refreshQr(inst: Instance) {
+    if (inst.provider === "meta_cloud") {
+      toast.info("Instâncias Meta não usam QR Code");
+      return;
+    }
     const { error } = await supabase.functions.invoke("evo-proxy", {
       body: {
         path: `/instance/connect/${encodeURIComponent(inst.name)}`,
@@ -507,6 +588,26 @@ export default function Integrations() {
   }
 
   async function checkStatus(inst: Instance) {
+    if (inst.provider === "meta_cloud") {
+      const { data, error } = await supabase.functions.invoke("meta-proxy", {
+        body: { instance_id: inst.id, action: "get_phone_info" },
+      });
+      if (error || (data as any)?.error) {
+        const msg = error?.message ?? (data as any)?.error ?? "Falha ao consultar Meta";
+        toast.error(msg);
+        await logEvent(inst.id, inst.name, "meta.status_failed", "error", msg, data);
+        await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+      } else {
+        const display = (data as any)?.data?.display_phone_number ?? null;
+        await supabase.from("evo_instances")
+          .update({ status: "connected", last_sync: new Date().toISOString(), ...(display ? { meta_display_phone_number: display, phone_number: display } : {}) })
+          .eq("id", inst.id);
+        toast.success("Conexão Meta verificada");
+        await logEvent(inst.id, inst.name, "meta.status", "success", "Status Meta verificado", data);
+      }
+      await loadInstances();
+      return;
+    }
     const { error } = await supabase.functions.invoke("evo-proxy", {
       body: {
         path: `/instance/connectionState/${encodeURIComponent(inst.name)}`,
@@ -527,13 +628,18 @@ export default function Integrations() {
   async function deleteInstance(inst: Instance) {
     if (!confirm(`Remover instância "${inst.name}"?`)) return;
     await logEvent(inst.id, inst.name, "instance.deleted", "warning", "Instância removida");
-    // Try to delete on Evo first (best-effort)
-    await supabase.functions.invoke("evo-proxy", {
-      body: { path: `/instance/delete/${encodeURIComponent(inst.name)}`, method: "DELETE" },
-    });
+    if (inst.provider === "evolution") {
+      await supabase.functions.invoke("evo-proxy", {
+        body: { path: `/instance/delete/${encodeURIComponent(inst.name)}`, method: "DELETE" },
+      });
+    }
     await supabase.from("evo_instances").delete().eq("id", inst.id);
     toast.success("Instância removida");
     await loadInstances();
+  }
+
+  function metaWebhookUrl(inst: Instance) {
+    return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook?instance=${inst.id}`;
   }
 
   function copyWebhook() {
@@ -641,8 +747,8 @@ export default function Integrations() {
             <Button
               size="sm"
               onClick={() => { setCreateError(null); setCreateOpen(true); }}
-              disabled={!settingsValid || dirty}
-              title={!settingsValid ? "Salve as configurações primeiro" : dirty ? "Salve as alterações antes de criar" : ""}
+              disabled={dirty}
+              title={dirty ? "Salve as alterações Evolution antes de criar" : ""}
               className="bg-gradient-primary text-primary-foreground gap-2 h-9 shadow-glow"
             >
               <Plus className="size-4" /> Nova instância
@@ -669,9 +775,18 @@ export default function Integrations() {
                 <div key={inst.id} className="surface-card p-5 space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-medium truncate">{inst.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{inst.name}</span>
+                        <Badge variant="outline" className={`text-[9px] uppercase tracking-wider ${
+                          inst.provider === "meta_cloud"
+                            ? "border-info/40 text-info bg-info/10"
+                            : "border-warning/40 text-warning bg-warning/10"
+                        }`}>
+                          {inst.provider === "meta_cloud" ? "Meta" : "Evolution"}
+                        </Badge>
+                      </div>
                       <div className="text-xs text-muted-foreground text-mono mt-0.5">
-                        {inst.phone_number ?? "—"}
+                        {inst.phone_number ?? inst.meta_display_phone_number ?? "—"}
                       </div>
                     </div>
                     <Badge variant="outline" className={`text-[10px] gap-1 ${meta.cls}`}>
@@ -689,8 +804,46 @@ export default function Integrations() {
                     </div>
                   </div>
 
+                  {inst.provider === "meta_cloud" && (
+                    <div className="surface-card p-2.5 border border-info/20 bg-info/5 space-y-1.5">
+                      <div className="text-[10px] uppercase tracking-wider text-info font-medium">Webhook Meta</div>
+                      <div className="flex gap-1.5">
+                        <Input
+                          readOnly
+                          value={metaWebhookUrl(inst)}
+                          className="h-7 text-[10px] text-mono bg-secondary/40"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => { navigator.clipboard.writeText(metaWebhookUrl(inst)); toast.success("URL copiada"); }}
+                        >
+                          <Copy className="size-3" />
+                        </Button>
+                      </div>
+                      {inst.meta_verify_token && (
+                        <div className="flex gap-1.5">
+                          <Input
+                            readOnly
+                            value={inst.meta_verify_token}
+                            className="h-7 text-[10px] text-mono bg-secondary/40"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="size-7"
+                            onClick={() => { navigator.clipboard.writeText(inst.meta_verify_token!); toast.success("Verify token copiado"); }}
+                          >
+                            <Copy className="size-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
-                    {inst.status !== "connected" && (
+                    {inst.provider === "evolution" && inst.status !== "connected" && (
                       <Button variant="outline" size="sm" onClick={() => { setQrInstance(inst); void refreshQr(inst); }} className="flex-1 gap-1.5 h-8">
                         <QrCode className="size-3.5" /> QR
                       </Button>
@@ -718,14 +871,14 @@ export default function Integrations() {
         onOpenChange={(o) => {
           if (creating) return;
           setCreateOpen(o);
-          if (!o) { setCreateError(null); setCreateStep("idle"); setNewName(""); }
+          if (!o) { setCreateError(null); resetNewForm(); }
         }}
       >
-        <DialogContent className="glass-strong max-w-md">
+        <DialogContent className="glass-strong max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova instância WhatsApp</DialogTitle>
             <DialogDescription>
-              Um nome único para identificar esta conexão (ex: <span className="text-mono">vendas-sp</span>).
+              Escolha o provedor: <span className="text-mono">Evolution</span> (não-oficial via QR) ou <span className="text-mono">Meta Cloud API</span> (oficial).
             </DialogDescription>
           </DialogHeader>
 
@@ -748,13 +901,96 @@ export default function Integrations() {
               </div>
             </div>
 
+            <Tabs value={newProvider} onValueChange={(v) => setNewProvider(v as Provider)}>
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="evolution" disabled={creating}>Evolution (QR)</TabsTrigger>
+                <TabsTrigger value="meta_cloud" disabled={creating}>Meta Cloud API</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="evolution" className="space-y-2 pt-3">
+                <p className="text-xs text-muted-foreground">
+                  Usa o servidor Evolution configurado acima. Você escaneará um QR no WhatsApp.
+                </p>
+                {!settingsValid && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertDescription className="text-xs">
+                      Configure URL e API Key da Evolution antes de criar.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </TabsContent>
+
+              <TabsContent value="meta_cloud" className="space-y-3 pt-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">Phone Number ID *</Label>
+                    <Input
+                      disabled={creating}
+                      value={metaPhoneId}
+                      onChange={(e) => setMetaPhoneId(e.target.value.trim())}
+                      placeholder="123456789012345"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">WABA ID</Label>
+                    <Input
+                      disabled={creating}
+                      value={metaWabaId}
+                      onChange={(e) => setMetaWabaId(e.target.value.trim())}
+                      placeholder="opcional"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Access Token (permanente) *</Label>
+                  <Textarea
+                    disabled={creating}
+                    value={metaToken}
+                    onChange={(e) => setMetaToken(e.target.value)}
+                    placeholder="EAAG..."
+                    rows={2}
+                    className="bg-secondary/40 text-mono text-xs"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-[11px] text-muted-foreground">App Secret (recomendado)</Label>
+                    <Input
+                      disabled={creating}
+                      type="password"
+                      value={metaAppSecret}
+                      onChange={(e) => setMetaAppSecret(e.target.value)}
+                      placeholder="valida assinatura do webhook"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">API</Label>
+                    <Input
+                      disabled={creating}
+                      value={metaApiVersion}
+                      onChange={(e) => setMetaApiVersion(e.target.value.trim())}
+                      placeholder="v21.0"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Após criar, copie a <strong>URL do webhook</strong> e o <strong>verify token</strong> que aparecerão no card e cole no Meta for Developers → WhatsApp → Configuration.
+                </p>
+              </TabsContent>
+            </Tabs>
+
             {creating && (
               <div className="space-y-2 surface-card p-3 border border-primary/20 bg-primary/5">
                 <div className="flex items-center gap-2 text-xs text-primary">
                   <Loader2 className="size-3.5 animate-spin" />
                   <span>
                     {createStep === "saving" && "Registrando instância…"}
-                    {createStep === "calling" && "Conectando à Evolution API…"}
+                    {createStep === "calling" && (newProvider === "meta_cloud" ? "Validando credenciais Meta…" : "Conectando à Evolution API…")}
                     {createStep === "qr" && "Gerando QR Code…"}
                   </span>
                 </div>
@@ -778,11 +1014,16 @@ export default function Integrations() {
             <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
             <Button
               onClick={createInstance}
-              disabled={creating || !newName || !nameValid || nameTaken}
+              disabled={
+                creating || !newName || !nameValid || nameTaken ||
+                (newProvider === "meta_cloud" && (!metaPhoneId || !metaToken))
+              }
               className="bg-gradient-primary text-primary-foreground gap-2"
             >
               {creating && <Loader2 className="size-3.5 animate-spin" />}
-              {creating ? "Criando…" : "Criar e gerar QR"}
+              {creating
+                ? "Criando…"
+                : newProvider === "meta_cloud" ? "Criar instância Meta" : "Criar e gerar QR"}
             </Button>
           </DialogFooter>
         </DialogContent>
