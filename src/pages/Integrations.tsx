@@ -860,38 +860,87 @@ export default function Integrations() {
                   <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
                 </Button>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportLogs("csv")}
-                    disabled={exporting}
-                    className="gap-1.5 h-8"
-                  >
-                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileSpreadsheet className="size-3.5" />}
-                    CSV
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportLogs("json")}
-                    disabled={exporting}
-                    className="gap-1.5 h-8"
-                  >
-                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileJson className="size-3.5" />}
-                    JSON
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setExportFrom(""); setExportTo(""); }}
-                    disabled={!exportFrom && !exportTo}
-                    className="h-8 text-xs"
-                    title="Limpar intervalo"
-                  >
-                    Limpar
-                  </Button>
+                  {(() => {
+                    const running = !!exportJob && (exportJob.status === "queued" || exportJob.status === "running");
+                    return (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startExportJob("csv")}
+                          disabled={running}
+                          className="gap-1.5 h-8"
+                        >
+                          {running && exportJob?.format === "csv" ? <Loader2 className="size-3.5 animate-spin" /> : <FileSpreadsheet className="size-3.5" />}
+                          CSV
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startExportJob("json")}
+                          disabled={running}
+                          className="gap-1.5 h-8"
+                        >
+                          {running && exportJob?.format === "json" ? <Loader2 className="size-3.5 animate-spin" /> : <FileJson className="size-3.5" />}
+                          JSON
+                        </Button>
+                        {running ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cancelExport}
+                            className="h-8 text-xs text-destructive hover:text-destructive"
+                          >
+                            Cancelar
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setExportFrom(""); setExportTo(""); }}
+                            disabled={!exportFrom && !exportTo}
+                            className="h-8 text-xs"
+                            title="Limpar intervalo"
+                          >
+                            Limpar
+                          </Button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
+
+              {exportJob && (
+                <div className="rounded-md border border-border/60 bg-secondary/30 p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="font-medium uppercase tracking-wider">
+                      Job {exportJob.format} · {exportJob.status}
+                    </span>
+                    <span className="text-mono">
+                      {exportJob.processed}
+                      {exportJob.total != null ? ` / ${exportJob.total}` : ""}
+                    </span>
+                  </div>
+                  <Progress
+                    value={
+                      exportJob.status === "done"
+                        ? 100
+                        : exportJob.total && exportJob.total > 0
+                        ? Math.min(100, Math.round((exportJob.processed / exportJob.total) * 100))
+                        : exportJob.status === "running"
+                        ? Math.min(95, (exportJob.processed % 1000) / 10)
+                        : 0
+                    }
+                    className="h-1.5"
+                  />
+                  {exportJob.message && (
+                    <p className={`text-[11px] ${exportJob.status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                      {exportJob.message}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </SheetHeader>
 
