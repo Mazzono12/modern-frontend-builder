@@ -410,8 +410,8 @@ export default function Integrations() {
 
   async function createInstance() {
     setCreateError(null);
-    if (!settingsValid) {
-      setCreateError("Salve as configurações do servidor antes de criar uma instância.");
+    if (newProvider === "evolution" && !settingsValid) {
+      setCreateError("Salve as configurações do servidor Evolution antes de criar uma instância Evolution.");
       return;
     }
     if (!nameValid) {
@@ -421,6 +421,12 @@ export default function Integrations() {
     if (nameTaken) {
       setCreateError("Já existe uma instância com esse nome.");
       return;
+    }
+    if (newProvider === "meta_cloud") {
+      if (!metaPhoneId.trim() || !metaToken.trim()) {
+        setCreateError("Phone Number ID e Access Token são obrigatórios.");
+        return;
+      }
     }
 
     setCreating(true);
@@ -434,9 +440,27 @@ export default function Integrations() {
       return;
     }
 
+    const baseRow: Record<string, unknown> = {
+      user_id: uid,
+      name: newName.trim(),
+      provider: newProvider,
+      status: newProvider === "meta_cloud" ? "connected" : "connecting",
+    };
+    if (newProvider === "meta_cloud") {
+      Object.assign(baseRow, {
+        meta_phone_number_id: metaPhoneId.trim(),
+        meta_waba_id: metaWabaId.trim() || null,
+        meta_access_token: metaToken.trim(),
+        meta_app_secret: metaAppSecret.trim() || null,
+        meta_app_id: metaAppId.trim() || null,
+        meta_api_version: metaApiVersion.trim() || "v21.0",
+        meta_verify_token: crypto.randomUUID().replace(/-/g, ""),
+      });
+    }
+
     const { data: inst, error: insErr } = await supabase
       .from("evo_instances")
-      .insert({ user_id: uid, name: newName.trim(), status: "connecting" })
+      .insert(baseRow as any)
       .select()
       .maybeSingle();
     if (insErr || !inst) {
@@ -446,8 +470,42 @@ export default function Integrations() {
       return;
     }
 
-    await logEvent(inst.id, inst.name, "instance.created", "info", "Instância criada localmente");
+    await logEvent(inst.id, inst.name, "instance.created", "info",
+      `Instância criada (${newProvider === "meta_cloud" ? "Meta Cloud API" : "Evolution"})`);
 
+    // ---- Meta Cloud: nothing else to call; just verify phone info ----
+    if (newProvider === "meta_cloud") {
+      setCreateStep("calling");
+      const { data: probe, error: probeErr } = await supabase.functions.invoke("meta-proxy", {
+        body: { instance_id: inst.id, action: "get_phone_info" },
+      });
+      if (probeErr || (probe as any)?.error) {
+        await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+        const msg = probeErr?.message ?? (probe as any)?.error ?? "Falha ao validar credenciais Meta";
+        await logEvent(inst.id, inst.name, "meta.validate_failed", "error", msg, probe);
+        setCreating(false);
+        setCreateStep("error");
+        setCreateError(msg);
+        await loadInstances();
+        return;
+      }
+      const display = (probe as any)?.data?.display_phone_number ?? null;
+      if (display) {
+        await supabase.from("evo_instances")
+          .update({ meta_display_phone_number: display, phone_number: display })
+          .eq("id", inst.id);
+      }
+      await logEvent(inst.id, inst.name, "meta.connected", "success", "Credenciais Meta validadas", probe);
+
+      setCreating(false);
+      setCreateOpen(false);
+      resetNewForm();
+      toast.success("Instância Meta criada e conectada");
+      await loadInstances();
+      return;
+    }
+
+    // ---- Evolution: original flow ----
     setCreateStep("calling");
     const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke("evo-proxy", {
       body: {
@@ -467,7 +525,6 @@ export default function Integrations() {
     });
 
     if (proxyErr || (proxyRes && (proxyRes as any).ok === false)) {
-      // rollback local row
       await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
       const errMsg = proxyErr?.message ??
           "A Evolution API rejeitou a criação. Verifique URL, API Key e se o servidor está acessível.";
@@ -486,10 +543,16 @@ export default function Integrations() {
 
     setCreating(false);
     setCreateOpen(false);
-    setNewName("");
-    setCreateStep("idle");
+    resetNewForm();
     toast.success("Instância criada — escaneie o QR Code");
     if (updated) setQrInstance(updated);
+  }
+
+  function resetNewForm() {
+    setNewName("");
+    setCreateStep("idle");
+    setMetaPhoneId(""); setMetaWabaId(""); setMetaToken("");
+    setMetaAppSecret(""); setMetaAppId(""); setMetaApiVersion("v21.0");
   }
 
   async function refreshQr(inst: Instance) {
