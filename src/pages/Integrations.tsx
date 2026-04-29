@@ -563,6 +563,10 @@ export default function Integrations() {
   }
 
   async function refreshQr(inst: Instance) {
+    if (inst.provider === "meta_cloud") {
+      toast.info("Instâncias Meta não usam QR Code");
+      return;
+    }
     const { error } = await supabase.functions.invoke("evo-proxy", {
       body: {
         path: `/instance/connect/${encodeURIComponent(inst.name)}`,
@@ -584,6 +588,26 @@ export default function Integrations() {
   }
 
   async function checkStatus(inst: Instance) {
+    if (inst.provider === "meta_cloud") {
+      const { data, error } = await supabase.functions.invoke("meta-proxy", {
+        body: { instance_id: inst.id, action: "get_phone_info" },
+      });
+      if (error || (data as any)?.error) {
+        const msg = error?.message ?? (data as any)?.error ?? "Falha ao consultar Meta";
+        toast.error(msg);
+        await logEvent(inst.id, inst.name, "meta.status_failed", "error", msg, data);
+        await supabase.from("evo_instances").update({ status: "error" }).eq("id", inst.id);
+      } else {
+        const display = (data as any)?.data?.display_phone_number ?? null;
+        await supabase.from("evo_instances")
+          .update({ status: "connected", last_sync: new Date().toISOString(), ...(display ? { meta_display_phone_number: display, phone_number: display } : {}) })
+          .eq("id", inst.id);
+        toast.success("Conexão Meta verificada");
+        await logEvent(inst.id, inst.name, "meta.status", "success", "Status Meta verificado", data);
+      }
+      await loadInstances();
+      return;
+    }
     const { error } = await supabase.functions.invoke("evo-proxy", {
       body: {
         path: `/instance/connectionState/${encodeURIComponent(inst.name)}`,
@@ -604,13 +628,18 @@ export default function Integrations() {
   async function deleteInstance(inst: Instance) {
     if (!confirm(`Remover instância "${inst.name}"?`)) return;
     await logEvent(inst.id, inst.name, "instance.deleted", "warning", "Instância removida");
-    // Try to delete on Evo first (best-effort)
-    await supabase.functions.invoke("evo-proxy", {
-      body: { path: `/instance/delete/${encodeURIComponent(inst.name)}`, method: "DELETE" },
-    });
+    if (inst.provider === "evolution") {
+      await supabase.functions.invoke("evo-proxy", {
+        body: { path: `/instance/delete/${encodeURIComponent(inst.name)}`, method: "DELETE" },
+      });
+    }
     await supabase.from("evo_instances").delete().eq("id", inst.id);
     toast.success("Instância removida");
     await loadInstances();
+  }
+
+  function metaWebhookUrl(inst: Instance) {
+    return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook?instance=${inst.id}`;
   }
 
   function copyWebhook() {
