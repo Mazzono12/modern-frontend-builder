@@ -40,14 +40,19 @@ type Settings = {
   webhook_secret: string;
 };
 
+type Provider = "evolution" | "meta_cloud";
 type Instance = {
   id: string;
   name: string;
+  provider: Provider;
   instance_key: string | null;
   phone_number: string | null;
   status: "disconnected" | "connecting" | "qr" | "connected" | "error";
   qr_code: string | null;
   last_sync: string | null;
+  meta_phone_number_id?: string | null;
+  meta_verify_token?: string | null;
+  meta_display_phone_number?: string | null;
 };
 
 type EventLevel = "info" | "success" | "warning" | "error";
