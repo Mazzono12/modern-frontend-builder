@@ -98,6 +98,7 @@ type EvoInstance = {
   name: string;
   status: string;
   phone_number: string | null;
+  provider: "evolution" | "meta_cloud";
 };
 
 /** Best-effort: turns "5511999998888" or "5511999998888@s.whatsapp.net" into a normalized JID. */
