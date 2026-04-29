@@ -80,6 +80,13 @@ export default function Integrations() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newProvider, setNewProvider] = useState<"evolution" | "meta_cloud">("evolution");
+  const [metaPhoneId, setMetaPhoneId] = useState("");
+  const [metaWabaId, setMetaWabaId] = useState("");
+  const [metaToken, setMetaToken] = useState("");
+  const [metaAppSecret, setMetaAppSecret] = useState("");
+  const [metaAppId, setMetaAppId] = useState("");
+  const [metaApiVersion, setMetaApiVersion] = useState("v21.0");
   const [creating, setCreating] = useState(false);
   const [createStep, setCreateStep] = useState<"idle" | "saving" | "calling" | "qr" | "error">("idle");
   const [createError, setCreateError] = useState<string | null>(null);
