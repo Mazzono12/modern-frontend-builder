@@ -795,14 +795,14 @@ export default function Integrations() {
         onOpenChange={(o) => {
           if (creating) return;
           setCreateOpen(o);
-          if (!o) { setCreateError(null); setCreateStep("idle"); setNewName(""); }
+          if (!o) { setCreateError(null); resetNewForm(); }
         }}
       >
-        <DialogContent className="glass-strong max-w-md">
+        <DialogContent className="glass-strong max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova instância WhatsApp</DialogTitle>
             <DialogDescription>
-              Um nome único para identificar esta conexão (ex: <span className="text-mono">vendas-sp</span>).
+              Escolha o provedor: <span className="text-mono">Evolution</span> (não-oficial via QR) ou <span className="text-mono">Meta Cloud API</span> (oficial).
             </DialogDescription>
           </DialogHeader>
 
@@ -825,13 +825,96 @@ export default function Integrations() {
               </div>
             </div>
 
+            <Tabs value={newProvider} onValueChange={(v) => setNewProvider(v as Provider)}>
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="evolution" disabled={creating}>Evolution (QR)</TabsTrigger>
+                <TabsTrigger value="meta_cloud" disabled={creating}>Meta Cloud API</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="evolution" className="space-y-2 pt-3">
+                <p className="text-xs text-muted-foreground">
+                  Usa o servidor Evolution configurado acima. Você escaneará um QR no WhatsApp.
+                </p>
+                {!settingsValid && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertDescription className="text-xs">
+                      Configure URL e API Key da Evolution antes de criar.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </TabsContent>
+
+              <TabsContent value="meta_cloud" className="space-y-3 pt-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">Phone Number ID *</Label>
+                    <Input
+                      disabled={creating}
+                      value={metaPhoneId}
+                      onChange={(e) => setMetaPhoneId(e.target.value.trim())}
+                      placeholder="123456789012345"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">WABA ID</Label>
+                    <Input
+                      disabled={creating}
+                      value={metaWabaId}
+                      onChange={(e) => setMetaWabaId(e.target.value.trim())}
+                      placeholder="opcional"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Access Token (permanente) *</Label>
+                  <Textarea
+                    disabled={creating}
+                    value={metaToken}
+                    onChange={(e) => setMetaToken(e.target.value)}
+                    placeholder="EAAG..."
+                    rows={2}
+                    className="bg-secondary/40 text-mono text-xs"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-[11px] text-muted-foreground">App Secret (recomendado)</Label>
+                    <Input
+                      disabled={creating}
+                      type="password"
+                      value={metaAppSecret}
+                      onChange={(e) => setMetaAppSecret(e.target.value)}
+                      placeholder="valida assinatura do webhook"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">API</Label>
+                    <Input
+                      disabled={creating}
+                      value={metaApiVersion}
+                      onChange={(e) => setMetaApiVersion(e.target.value.trim())}
+                      placeholder="v21.0"
+                      className="bg-secondary/40 text-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Após criar, copie a <strong>URL do webhook</strong> e o <strong>verify token</strong> que aparecerão no card e cole no Meta for Developers → WhatsApp → Configuration.
+                </p>
+              </TabsContent>
+            </Tabs>
+
             {creating && (
               <div className="space-y-2 surface-card p-3 border border-primary/20 bg-primary/5">
                 <div className="flex items-center gap-2 text-xs text-primary">
                   <Loader2 className="size-3.5 animate-spin" />
                   <span>
                     {createStep === "saving" && "Registrando instância…"}
-                    {createStep === "calling" && "Conectando à Evolution API…"}
+                    {createStep === "calling" && (newProvider === "meta_cloud" ? "Validando credenciais Meta…" : "Conectando à Evolution API…")}
                     {createStep === "qr" && "Gerando QR Code…"}
                   </span>
                 </div>
@@ -855,11 +938,16 @@ export default function Integrations() {
             <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
             <Button
               onClick={createInstance}
-              disabled={creating || !newName || !nameValid || nameTaken}
+              disabled={
+                creating || !newName || !nameValid || nameTaken ||
+                (newProvider === "meta_cloud" && (!metaPhoneId || !metaToken))
+              }
               className="bg-gradient-primary text-primary-foreground gap-2"
             >
               {creating && <Loader2 className="size-3.5 animate-spin" />}
-              {creating ? "Criando…" : "Criar e gerar QR"}
+              {creating
+                ? "Criando…"
+                : newProvider === "meta_cloud" ? "Criar instância Meta" : "Criar e gerar QR"}
             </Button>
           </DialogFooter>
         </DialogContent>
