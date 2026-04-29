@@ -91,7 +91,17 @@ export default function Integrations() {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [exportFrom, setExportFrom] = useState<string>("");
   const [exportTo, setExportTo] = useState<string>("");
-  const [exporting, setExporting] = useState(false);
+  const [exportJob, setExportJob] = useState<{
+    id: string;
+    format: "csv" | "json";
+    status: "queued" | "running" | "done" | "error" | "cancelled";
+    processed: number;
+    total: number | null;
+    message?: string;
+    startedAt: number;
+    finishedAt?: number;
+  } | null>(null);
+  const exportCancelRef = (typeof window !== "undefined" ? (window as any) : {}) as { __evoExportCancel?: boolean };
 
   const settingsValid = !!settings && !!settings.server_url && !!settings.api_key;
   const dirty =
@@ -204,54 +214,150 @@ export default function Integrations() {
     return s;
   }
 
-  async function exportLogs(format: "csv" | "json") {
+  const yieldToUI = () =>
+    new Promise<void>((resolve) => {
+      const w = window as any;
+      if (typeof w.requestIdleCallback === "function") {
+        w.requestIdleCallback(() => resolve(), { timeout: 50 });
+      } else {
+        setTimeout(resolve, 0);
+      }
+    });
+
+  function cancelExport() {
+    exportCancelRef.__evoExportCancel = true;
+    setExportJob((j) => (j && (j.status === "queued" || j.status === "running")
+      ? { ...j, status: "cancelled", finishedAt: Date.now(), message: "Cancelado pelo usuário" }
+      : j));
+    toast.message("Export cancelado");
+  }
+
+  async function startExportJob(format: "csv" | "json") {
     if (!logsInstance) return;
-    setExporting(true);
+    if (exportJob && (exportJob.status === "queued" || exportJob.status === "running")) {
+      toast.warning("Já existe um export em andamento");
+      return;
+    }
+    const jobId = crypto.randomUUID();
+    exportCancelRef.__evoExportCancel = false;
+    setExportJob({ id: jobId, format, status: "queued", processed: 0, total: null, startedAt: Date.now() });
+
+    const PAGE = 500;
+    const HARD_CAP = 50000;
+
+    // Build base filter
+    const fromIso = exportFrom ? new Date(exportFrom).toISOString() : null;
+    let toIso: string | null = null;
+    if (exportTo) {
+      const end = new Date(exportTo);
+      end.setHours(23, 59, 59, 999);
+      toIso = end.toISOString();
+    }
+
+    // Try to estimate total (best-effort, non-blocking semantics)
     try {
-      let q = supabase
+      let cq = supabase
         .from("evo_instance_events")
-        .select("*")
-        .eq("instance_id", logsInstance.id)
-        .order("created_at", { ascending: false })
-        .limit(10000);
-      if (exportFrom) q = q.gte("created_at", new Date(exportFrom).toISOString());
-      if (exportTo) {
-        const end = new Date(exportTo);
-        end.setHours(23, 59, 59, 999);
-        q = q.lte("created_at", end.toISOString());
+        .select("id", { count: "exact", head: true })
+        .eq("instance_id", logsInstance.id);
+      if (fromIso) cq = cq.gte("created_at", fromIso);
+      if (toIso) cq = cq.lte("created_at", toIso);
+      const { count } = await cq;
+      setExportJob((j) => (j && j.id === jobId ? { ...j, total: count ?? null, status: "running" } : j));
+    } catch {
+      setExportJob((j) => (j && j.id === jobId ? { ...j, status: "running" } : j));
+    }
+
+    const csvHeaders = ["created_at", "event_type", "level", "message", "instance_name", "details"];
+    const chunks: string[] = [];
+    if (format === "csv") chunks.push(csvHeaders.join(",") + "\n");
+    else chunks.push("[\n");
+
+    let processed = 0;
+    let firstJson = true;
+    let offset = 0;
+
+    try {
+      while (offset < HARD_CAP) {
+        if (exportCancelRef.__evoExportCancel) break;
+
+        let q = supabase
+          .from("evo_instance_events")
+          .select("*")
+          .eq("instance_id", logsInstance.id)
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE - 1);
+        if (fromIso) q = q.gte("created_at", fromIso);
+        if (toIso) q = q.lte("created_at", toIso);
+
+        const { data, error } = await q;
+        if (error) throw new Error(error.message);
+        const rows = (data ?? []) as InstanceEvent[];
+        if (rows.length === 0) break;
+
+        if (format === "json") {
+          for (const r of rows) {
+            chunks.push((firstJson ? "" : ",\n") + JSON.stringify(r));
+            firstJson = false;
+          }
+        } else {
+          for (const r of rows) {
+            chunks.push(
+              [
+                csvEscape(r.created_at),
+                csvEscape(r.event_type),
+                csvEscape(r.level),
+                csvEscape(r.message),
+                csvEscape((r as any).instance_name),
+                csvEscape(r.details),
+              ].join(",") + "\n",
+            );
+          }
+        }
+
+        processed += rows.length;
+        offset += rows.length;
+        setExportJob((j) => (j && j.id === jobId ? { ...j, processed } : j));
+
+        // Yield so UI stays responsive on big intervals
+        await yieldToUI();
+        if (rows.length < PAGE) break;
       }
-      const { data, error } = await q;
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      const rows = (data ?? []) as InstanceEvent[];
-      if (rows.length === 0) {
+
+      if (exportCancelRef.__evoExportCancel) return;
+
+      if (processed === 0) {
+        setExportJob((j) => (j && j.id === jobId
+          ? { ...j, status: "done", finishedAt: Date.now(), message: "Nenhum evento no intervalo" }
+          : j));
         toast.info("Nenhum evento no intervalo selecionado");
         return;
       }
+
+      if (format === "json") chunks.push("\n]\n");
+
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       const base = `logs-${logsInstance.name}-${stamp}`;
-      if (format === "json") {
-        downloadBlob(JSON.stringify(rows, null, 2), `${base}.json`, "application/json");
-      } else {
-        const headers = ["created_at", "event_type", "level", "message", "instance_name", "details"];
-        const lines = [headers.join(",")];
-        for (const r of rows) {
-          lines.push([
-            csvEscape(r.created_at),
-            csvEscape(r.event_type),
-            csvEscape(r.level),
-            csvEscape(r.message),
-            csvEscape((r as any).instance_name),
-            csvEscape(r.details),
-          ].join(","));
-        }
-        downloadBlob(lines.join("\n"), `${base}.csv`, "text/csv;charset=utf-8");
-      }
-      toast.success(`${rows.length} evento(s) exportado(s)`);
-    } finally {
-      setExporting(false);
+      const mime = format === "json" ? "application/json" : "text/csv;charset=utf-8";
+      const blob = new Blob(chunks, { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${base}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setExportJob((j) => (j && j.id === jobId
+        ? { ...j, status: "done", processed, finishedAt: Date.now(), message: `Arquivo gerado` }
+        : j));
+      toast.success(`${processed} evento(s) exportado(s)`);
+    } catch (err: any) {
+      setExportJob((j) => (j && j.id === jobId
+        ? { ...j, status: "error", finishedAt: Date.now(), message: err?.message ?? "Falha ao exportar" }
+        : j));
+      toast.error(err?.message ?? "Falha ao exportar");
     }
   }
 
@@ -754,38 +860,87 @@ export default function Integrations() {
                   <RefreshCw className={`size-3.5 ${loadingEvents ? "animate-spin" : ""}`} /> Atualizar
                 </Button>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportLogs("csv")}
-                    disabled={exporting}
-                    className="gap-1.5 h-8"
-                  >
-                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileSpreadsheet className="size-3.5" />}
-                    CSV
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportLogs("json")}
-                    disabled={exporting}
-                    className="gap-1.5 h-8"
-                  >
-                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileJson className="size-3.5" />}
-                    JSON
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setExportFrom(""); setExportTo(""); }}
-                    disabled={!exportFrom && !exportTo}
-                    className="h-8 text-xs"
-                    title="Limpar intervalo"
-                  >
-                    Limpar
-                  </Button>
+                  {(() => {
+                    const running = !!exportJob && (exportJob.status === "queued" || exportJob.status === "running");
+                    return (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startExportJob("csv")}
+                          disabled={running}
+                          className="gap-1.5 h-8"
+                        >
+                          {running && exportJob?.format === "csv" ? <Loader2 className="size-3.5 animate-spin" /> : <FileSpreadsheet className="size-3.5" />}
+                          CSV
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startExportJob("json")}
+                          disabled={running}
+                          className="gap-1.5 h-8"
+                        >
+                          {running && exportJob?.format === "json" ? <Loader2 className="size-3.5 animate-spin" /> : <FileJson className="size-3.5" />}
+                          JSON
+                        </Button>
+                        {running ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cancelExport}
+                            className="h-8 text-xs text-destructive hover:text-destructive"
+                          >
+                            Cancelar
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setExportFrom(""); setExportTo(""); }}
+                            disabled={!exportFrom && !exportTo}
+                            className="h-8 text-xs"
+                            title="Limpar intervalo"
+                          >
+                            Limpar
+                          </Button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
+
+              {exportJob && (
+                <div className="rounded-md border border-border/60 bg-secondary/30 p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="font-medium uppercase tracking-wider">
+                      Job {exportJob.format} · {exportJob.status}
+                    </span>
+                    <span className="text-mono">
+                      {exportJob.processed}
+                      {exportJob.total != null ? ` / ${exportJob.total}` : ""}
+                    </span>
+                  </div>
+                  <Progress
+                    value={
+                      exportJob.status === "done"
+                        ? 100
+                        : exportJob.total && exportJob.total > 0
+                        ? Math.min(100, Math.round((exportJob.processed / exportJob.total) * 100))
+                        : exportJob.status === "running"
+                        ? Math.min(95, (exportJob.processed % 1000) / 10)
+                        : 0
+                    }
+                    className="h-1.5"
+                  />
+                  {exportJob.message && (
+                    <p className={`text-[11px] ${exportJob.status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                      {exportJob.message}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </SheetHeader>
 
