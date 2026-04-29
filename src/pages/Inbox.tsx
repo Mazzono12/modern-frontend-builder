@@ -175,7 +175,7 @@ export default function Inbox() {
     (async () => {
       const { data } = await supabase
         .from("evo_instances")
-        .select("id, name, status, phone_number")
+        .select("id, name, status, phone_number, provider")
         .order("created_at", { ascending: false });
       if (!mounted || !data) return;
       setInstances(data as EvoInstance[]);
