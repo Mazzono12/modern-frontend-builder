@@ -589,6 +589,7 @@ export default function Integrations() {
     setCreateStep("idle");
     setMetaPhoneId(""); setMetaWabaId(""); setMetaToken("");
     setMetaAppSecret(""); setMetaAppId(""); setMetaApiVersion("v21.0");
+    setMetaFieldErrors({});
   }
 
   async function refreshQr(inst: Instance) {
