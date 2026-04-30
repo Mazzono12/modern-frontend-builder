@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const token = (body.access_token ?? "").trim();
     const appId = (body.app_id ?? "").trim();
     const appSecret = (body.app_secret ?? "").trim();
-    const apiVersion = (body.api_version ?? "v21.0").trim();
+    const apiVersion = (body.api_version ?? "v23.0").trim();
 
     if (!phoneId) fieldErrors.phone_number_id = "Phone Number ID é obrigatório.";
     else if (!/^\d{6,25}$/.test(phoneId)) fieldErrors.phone_number_id = "Deve conter apenas dígitos (6–25).";
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     if (wabaId && !/^\d{6,25}$/.test(wabaId)) fieldErrors.waba_id = "WABA ID deve conter apenas dígitos.";
     if (appId && !/^\d{6,25}$/.test(appId)) fieldErrors.app_id = "App ID deve conter apenas dígitos.";
     if (appSecret && appSecret.length < 16) fieldErrors.app_secret = "App Secret parece inválido (muito curto).";
-    if (!/^v\d+\.\d+$/.test(apiVersion)) fieldErrors.api_version = "Formato esperado: v21.0";
+    if (!/^v\d+\.\d+$/.test(apiVersion)) fieldErrors.api_version = "Formato esperado: v23.0";
 
     if (Object.keys(fieldErrors).length > 0) {
       return json({ ok: false, stage: "format", fieldErrors }, 200);

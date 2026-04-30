@@ -16,6 +16,7 @@ import Pipeline from "./pages/Pipeline.tsx";
 import Contacts from "./pages/Contacts.tsx";
 import Settings from "./pages/Settings.tsx";
 import Integrations from "./pages/Integrations.tsx";
+import N8N from "./pages/N8N.tsx";
 import { ComingSoon } from "./components/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="templates" element={<ComingSoon title="Templates" description="Mensagens aprovadas pela Meta." />} />
               <Route path="settings" element={<Settings />} />
               <Route path="integrations" element={<Integrations />} />
+              <Route path="n8n" element={<N8N />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

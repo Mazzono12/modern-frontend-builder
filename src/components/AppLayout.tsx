@@ -19,6 +19,7 @@ const titles: Record<string, { title: string; sub?: string }> = {
   "/app/contacts": { title: "Contatos", sub: "CRM da sua base" },
   "/app/templates": { title: "Templates", sub: "Mensagens aprovadas" },
   "/app/integrations": { title: "Integrações", sub: "Evolution API · WhatsApp" },
+  "/app/n8n": { title: "n8n · Agentes & Automação", sub: "Workflows e webhooks" },
   "/app/settings": { title: "Configurações", sub: "Workspace e integrações" },
 };
 

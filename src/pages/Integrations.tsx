@@ -93,7 +93,7 @@ export default function Integrations() {
   const [metaToken, setMetaToken] = useState("");
   const [metaAppSecret, setMetaAppSecret] = useState("");
   const [metaAppId, setMetaAppId] = useState("");
-  const [metaApiVersion, setMetaApiVersion] = useState("v21.0");
+  const [metaApiVersion, setMetaApiVersion] = useState("v23.0");
   const [creating, setCreating] = useState(false);
   const [createStep, setCreateStep] = useState<"idle" | "saving" | "calling" | "qr" | "error">("idle");
   const [createError, setCreateError] = useState<string | null>(null);
@@ -447,7 +447,7 @@ export default function Integrations() {
           access_token: metaToken.trim(),
           app_id: metaAppId.trim() || undefined,
           app_secret: metaAppSecret.trim() || undefined,
-          api_version: metaApiVersion.trim() || "v21.0",
+          api_version: metaApiVersion.trim() || "v23.0",
         },
       });
       setValidatingMeta(false);
@@ -489,7 +489,7 @@ export default function Integrations() {
         meta_access_token: metaToken.trim(),
         meta_app_secret: metaAppSecret.trim() || null,
         meta_app_id: metaAppId.trim() || null,
-        meta_api_version: metaApiVersion.trim() || "v21.0",
+        meta_api_version: metaApiVersion.trim() || "v23.0",
         meta_verify_token: crypto.randomUUID().replace(/-/g, ""),
       });
     }
@@ -588,7 +588,7 @@ export default function Integrations() {
     setNewName("");
     setCreateStep("idle");
     setMetaPhoneId(""); setMetaWabaId(""); setMetaToken("");
-    setMetaAppSecret(""); setMetaAppId(""); setMetaApiVersion("v21.0");
+    setMetaAppSecret(""); setMetaAppId(""); setMetaApiVersion("v23.0");
     setMetaFieldErrors({});
   }
 
@@ -1033,7 +1033,7 @@ export default function Integrations() {
                       disabled={creating || validatingMeta}
                       value={metaApiVersion}
                       onChange={(e) => { setMetaApiVersion(e.target.value.trim()); setMetaFieldErrors((s) => ({ ...s, api_version: "" })); }}
-                      placeholder="v21.0"
+                      placeholder="v23.0"
                       aria-invalid={!!metaFieldErrors.api_version}
                       className={`bg-secondary/40 text-mono text-xs ${metaFieldErrors.api_version ? "border-destructive" : ""}`}
                     />
