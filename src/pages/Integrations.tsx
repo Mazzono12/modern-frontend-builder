@@ -97,6 +97,8 @@ export default function Integrations() {
   const [creating, setCreating] = useState(false);
   const [createStep, setCreateStep] = useState<"idle" | "saving" | "calling" | "qr" | "error">("idle");
   const [createError, setCreateError] = useState<string | null>(null);
+  const [metaFieldErrors, setMetaFieldErrors] = useState<Record<string, string>>({});
+  const [validatingMeta, setValidatingMeta] = useState(false);
 
   const [qrInstance, setQrInstance] = useState<Instance | null>(null);
 
