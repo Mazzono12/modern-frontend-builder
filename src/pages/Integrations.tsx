@@ -1081,19 +1081,21 @@ export default function Integrations() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating || validatingMeta}>Cancelar</Button>
             <Button
               onClick={createInstance}
               disabled={
-                creating || !newName || !nameValid || nameTaken ||
+                creating || validatingMeta || !newName || !nameValid || nameTaken ||
                 (newProvider === "meta_cloud" && (!metaPhoneId || !metaToken))
               }
               className="bg-gradient-primary text-primary-foreground gap-2"
             >
-              {creating && <Loader2 className="size-3.5 animate-spin" />}
-              {creating
-                ? "Criando…"
-                : newProvider === "meta_cloud" ? "Criar instância Meta" : "Criar e gerar QR"}
+              {(creating || validatingMeta) && <Loader2 className="size-3.5 animate-spin" />}
+              {validatingMeta
+                ? "Validando…"
+                : creating
+                  ? "Criando…"
+                  : newProvider === "meta_cloud" ? "Validar e criar" : "Criar e gerar QR"}
             </Button>
           </DialogFooter>
         </DialogContent>
