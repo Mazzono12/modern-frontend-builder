@@ -956,58 +956,98 @@ export default function Integrations() {
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">Phone Number ID *</Label>
                     <Input
-                      disabled={creating}
+                      disabled={creating || validatingMeta}
                       value={metaPhoneId}
-                      onChange={(e) => setMetaPhoneId(e.target.value.trim())}
+                      onChange={(e) => { setMetaPhoneId(e.target.value.trim()); setMetaFieldErrors((s) => ({ ...s, phone_number_id: "" })); }}
                       placeholder="123456789012345"
-                      className="bg-secondary/40 text-mono text-xs"
+                      aria-invalid={!!metaFieldErrors.phone_number_id}
+                      className={`bg-secondary/40 text-mono text-xs ${metaFieldErrors.phone_number_id ? "border-destructive" : ""}`}
                     />
+                    {metaFieldErrors.phone_number_id && (
+                      <p className="text-[11px] text-destructive">{metaFieldErrors.phone_number_id}</p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">WABA ID</Label>
                     <Input
-                      disabled={creating}
+                      disabled={creating || validatingMeta}
                       value={metaWabaId}
-                      onChange={(e) => setMetaWabaId(e.target.value.trim())}
+                      onChange={(e) => { setMetaWabaId(e.target.value.trim()); setMetaFieldErrors((s) => ({ ...s, waba_id: "" })); }}
                       placeholder="opcional"
-                      className="bg-secondary/40 text-mono text-xs"
+                      aria-invalid={!!metaFieldErrors.waba_id}
+                      className={`bg-secondary/40 text-mono text-xs ${metaFieldErrors.waba_id ? "border-destructive" : ""}`}
                     />
+                    {metaFieldErrors.waba_id && (
+                      <p className="text-[11px] text-destructive">{metaFieldErrors.waba_id}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[11px] text-muted-foreground">Access Token (permanente) *</Label>
                   <Textarea
-                    disabled={creating}
+                    disabled={creating || validatingMeta}
                     value={metaToken}
-                    onChange={(e) => setMetaToken(e.target.value)}
+                    onChange={(e) => { setMetaToken(e.target.value); setMetaFieldErrors((s) => ({ ...s, access_token: "" })); }}
                     placeholder="EAAG..."
                     rows={2}
-                    className="bg-secondary/40 text-mono text-xs"
+                    aria-invalid={!!metaFieldErrors.access_token}
+                    className={`bg-secondary/40 text-mono text-xs ${metaFieldErrors.access_token ? "border-destructive" : ""}`}
                   />
+                  {metaFieldErrors.access_token && (
+                    <p className="text-[11px] text-destructive">{metaFieldErrors.access_token}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1 col-span-2">
-                    <Label className="text-[11px] text-muted-foreground">App Secret (recomendado)</Label>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">App ID</Label>
                     <Input
-                      disabled={creating}
+                      disabled={creating || validatingMeta}
+                      value={metaAppId}
+                      onChange={(e) => { setMetaAppId(e.target.value.trim()); setMetaFieldErrors((s) => ({ ...s, app_id: "" })); }}
+                      placeholder="opcional"
+                      aria-invalid={!!metaFieldErrors.app_id}
+                      className={`bg-secondary/40 text-mono text-xs ${metaFieldErrors.app_id ? "border-destructive" : ""}`}
+                    />
+                    {metaFieldErrors.app_id && (
+                      <p className="text-[11px] text-destructive">{metaFieldErrors.app_id}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">App Secret</Label>
+                    <Input
+                      disabled={creating || validatingMeta}
                       type="password"
                       value={metaAppSecret}
-                      onChange={(e) => setMetaAppSecret(e.target.value)}
-                      placeholder="valida assinatura do webhook"
-                      className="bg-secondary/40 text-mono text-xs"
+                      onChange={(e) => { setMetaAppSecret(e.target.value); setMetaFieldErrors((s) => ({ ...s, app_secret: "" })); }}
+                      placeholder="webhook + debug_token"
+                      aria-invalid={!!metaFieldErrors.app_secret}
+                      className={`bg-secondary/40 text-mono text-xs ${metaFieldErrors.app_secret ? "border-destructive" : ""}`}
                     />
+                    {metaFieldErrors.app_secret && (
+                      <p className="text-[11px] text-destructive">{metaFieldErrors.app_secret}</p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">API</Label>
                     <Input
-                      disabled={creating}
+                      disabled={creating || validatingMeta}
                       value={metaApiVersion}
-                      onChange={(e) => setMetaApiVersion(e.target.value.trim())}
+                      onChange={(e) => { setMetaApiVersion(e.target.value.trim()); setMetaFieldErrors((s) => ({ ...s, api_version: "" })); }}
                       placeholder="v21.0"
-                      className="bg-secondary/40 text-mono text-xs"
+                      aria-invalid={!!metaFieldErrors.api_version}
+                      className={`bg-secondary/40 text-mono text-xs ${metaFieldErrors.api_version ? "border-destructive" : ""}`}
                     />
+                    {metaFieldErrors.api_version && (
+                      <p className="text-[11px] text-destructive">{metaFieldErrors.api_version}</p>
+                    )}
                   </div>
                 </div>
+                {validatingMeta && (
+                  <div className="flex items-center gap-2 text-[11px] text-primary">
+                    <Loader2 className="size-3 animate-spin" />
+                    Validando credenciais com a Meta Graph API…
+                  </div>
+                )}
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
                   Após criar, copie a <strong>URL do webhook</strong> e o <strong>verify token</strong> que aparecerão no card e cole no Meta for Developers → WhatsApp → Configuration.
                 </p>
