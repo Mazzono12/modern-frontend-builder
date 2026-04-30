@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       return json({ error: "Credenciais Meta incompletas para esta instância" }, 400);
     }
 
-    const apiVersion = inst.meta_api_version || "v21.0";
+    const apiVersion = inst.meta_api_version || "v23.0";
     const phoneId = inst.meta_phone_number_id;
     const token = inst.meta_access_token;
     const base = `https://graph.facebook.com/${apiVersion}`;
