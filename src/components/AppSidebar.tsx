@@ -11,6 +11,7 @@ import {
   Settings,
   KanbanSquare,
   Plug,
+  Workflow,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +43,7 @@ const secondary = [
   { title: "Contatos", url: "/app/contacts", icon: Users },
   { title: "Templates", url: "/app/templates", icon: FileText },
   { title: "Integrações", url: "/app/integrations", icon: Plug },
+  { title: "n8n · Agentes", url: "/app/n8n", icon: Workflow },
   { title: "Configurações", url: "/app/settings", icon: Settings },
 ];
 
