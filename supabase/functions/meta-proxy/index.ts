@@ -283,11 +283,11 @@ Deno.serve(async (req) => {
         content,
         external_id: externalId,
         status: "sent",
-        raw: { request: graphBody, response: data },
+        raw: { request: graphBody, response: data, attempts: attempt },
       });
-      await logEvent(`meta.${body.action}`, "success", `Mensagem enviada via Meta`, { externalId });
+      await logEvent(`meta.${body.action}`, "success", `Mensagem enviada via Meta`, { externalId, attempts: attempt });
     } else {
-      await logEvent(`meta.${body.action}`, "info", `Ação ${body.action} executada`, data);
+      await logEvent(`meta.${body.action}`, "info", `Ação ${body.action} executada`, { ...((data && typeof data === "object") ? data : { data }), attempts: attempt });
     }
 
     return json({ ok: true, data });
