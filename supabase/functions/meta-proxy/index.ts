@@ -178,21 +178,85 @@ Deno.serve(async (req) => {
         return json({ error: `Ação desconhecida: ${body.action}` }, 400);
     }
 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: graphBody ? JSON.stringify(graphBody) : undefined,
-    });
-    const text = await res.text();
-    let data: any = null;
-    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+    // Retry policy: only retry transient failures (network errors, 408, 425, 429, 5xx).
+    // Meta-specific transient codes: 1, 2, 4 (rate/temporary), 130429 (rate limit), 131056 (pair rate).
+    const SENDING_ACTIONS = new Set([
+      "send_text", "send_media", "send_template", "send_interactive", "send_reaction",
+    ]);
+    const isRetryableStatus = (s: number) => s === 408 || s === 425 || s === 429 || (s >= 500 && s <= 599);
+    const isRetryableMetaError = (d: any) => {
+      const code = d?.error?.code;
+      const sub = d?.error?.error_subcode;
+      return code === 1 || code === 2 || code === 4 || code === 130429 || code === 131056 || sub === 2494055;
+    };
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    if (!res.ok) {
-      await logEvent(`meta.${body.action}`, "error", `Falha Meta API (${res.status})`, data);
-      return json({ error: "Meta API error", status: res.status, details: data }, res.status);
+    const maxAttempts = SENDING_ACTIONS.has(body.action) ? 4 : 1;
+    let attempt = 0;
+    let res!: Response;
+    let text = "";
+    let data: any = null;
+    let lastErr: unknown = null;
+
+    while (attempt < maxAttempts) {
+      attempt++;
+      try {
+        res = await fetch(url, {
+          method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: graphBody ? JSON.stringify(graphBody) : undefined,
+        });
+        text = await res.text();
+        try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+        if (res.ok) break;
+
+        const retryable = isRetryableStatus(res.status) || isRetryableMetaError(data);
+        if (!retryable || attempt >= maxAttempts) {
+          await logEvent(
+            `meta.${body.action}`,
+            "error",
+            `Falha Meta API (${res.status}) após ${attempt} tentativa(s)`,
+            { attempt, response: data },
+          );
+          return json({ error: "Meta API error", status: res.status, attempts: attempt, details: data }, res.status);
+        }
+
+        // Honor Retry-After when provided, else exponential backoff with jitter.
+        const retryAfterHeader = res.headers.get("retry-after");
+        const retryAfterMs = retryAfterHeader ? Math.min(30_000, Number(retryAfterHeader) * 1000) : 0;
+        const backoff = retryAfterMs || Math.min(8_000, 500 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 250);
+        await logEvent(
+          `meta.${body.action}`,
+          "warning",
+          `Tentativa ${attempt} falhou (HTTP ${res.status}), retentando em ${backoff}ms`,
+          { response: data },
+        );
+        await sleep(backoff);
+      } catch (netErr) {
+        lastErr = netErr;
+        if (attempt >= maxAttempts) {
+          const msg = netErr instanceof Error ? netErr.message : "Network error";
+          await logEvent(`meta.${body.action}`, "error", `Erro de rede após ${attempt} tentativa(s): ${msg}`);
+          return json({ error: "Network error", attempts: attempt, details: msg }, 502);
+        }
+        const backoff = Math.min(8_000, 500 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 250);
+        await logEvent(
+          `meta.${body.action}`,
+          "warning",
+          `Erro de rede tentativa ${attempt}, retentando em ${backoff}ms`,
+          { error: netErr instanceof Error ? netErr.message : String(netErr) },
+        );
+        await sleep(backoff);
+      }
+    }
+
+    if (!res || !res.ok) {
+      const msg = lastErr instanceof Error ? lastErr.message : "Falha após retentativas";
+      return json({ error: msg, attempts: attempt }, 502);
     }
 
     // Persist outgoing message + log
@@ -219,11 +283,11 @@ Deno.serve(async (req) => {
         content,
         external_id: externalId,
         status: "sent",
-        raw: { request: graphBody, response: data },
+        raw: { request: graphBody, response: data, attempts: attempt },
       });
-      await logEvent(`meta.${body.action}`, "success", `Mensagem enviada via Meta`, { externalId });
+      await logEvent(`meta.${body.action}`, "success", `Mensagem enviada via Meta`, { externalId, attempts: attempt });
     } else {
-      await logEvent(`meta.${body.action}`, "info", `Ação ${body.action} executada`, data);
+      await logEvent(`meta.${body.action}`, "info", `Ação ${body.action} executada`, { ...((data && typeof data === "object") ? data : { data }), attempts: attempt });
     }
 
     return json({ ok: true, data });
