@@ -419,6 +419,7 @@ export default function Integrations() {
 
   async function createInstance() {
     setCreateError(null);
+    setMetaFieldErrors({});
     if (newProvider === "evolution" && !settingsValid) {
       setCreateError("Salve as configurações do servidor Evolution antes de criar uma instância Evolution.");
       return;
@@ -434,6 +435,32 @@ export default function Integrations() {
     if (newProvider === "meta_cloud") {
       if (!metaPhoneId.trim() || !metaToken.trim()) {
         setCreateError("Phone Number ID e Access Token são obrigatórios.");
+        return;
+      }
+
+      // Pre-validate credentials with Meta Graph API BEFORE persisting the instance.
+      setValidatingMeta(true);
+      const { data: vData, error: vErr } = await supabase.functions.invoke("meta-validate", {
+        body: {
+          phone_number_id: metaPhoneId.trim(),
+          waba_id: metaWabaId.trim() || undefined,
+          access_token: metaToken.trim(),
+          app_id: metaAppId.trim() || undefined,
+          app_secret: metaAppSecret.trim() || undefined,
+          api_version: metaApiVersion.trim() || "v21.0",
+        },
+      });
+      setValidatingMeta(false);
+      if (vErr) {
+        setCreateError(vErr.message ?? "Falha ao validar credenciais Meta.");
+        return;
+      }
+      const v = vData as { ok?: boolean; fieldErrors?: Record<string, string>; stage?: string; detected_waba_id?: string | null };
+      if (!v?.ok) {
+        const fe = v?.fieldErrors ?? {};
+        setMetaFieldErrors(fe);
+        const first = Object.values(fe)[0];
+        setCreateError(first ?? "Credenciais Meta inválidas.");
         return;
       }
     }
