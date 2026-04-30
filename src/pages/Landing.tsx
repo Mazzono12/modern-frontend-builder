@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight, MessageSquare, Megaphone, Bot, PhoneCall, BarChart3, Github, Check } from "lucide-react";
+import { Sparkles, ArrowRight, MessageSquare, Megaphone, Bot, PhoneCall, BarChart3, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const features = [
@@ -29,7 +29,6 @@ export default function Landing() {
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
           <a href="#stack" className="hover:text-foreground transition-colors">Stack</a>
-          <a href="https://github.com/shridarpatil/cifher" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
         </nav>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
@@ -59,7 +58,7 @@ export default function Landing() {
             <Link to="/app">Ver demo ao vivo <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="h-11 px-6 gap-2 border-border bg-secondary/40">
-            <a href="https://github.com/shridarpatil/cifher" target="_blank" rel="noreferrer"><Github className="size-4" />Estrelar no GitHub</a>
+            <Link to="/login">Entrar</Link>
           </Button>
         </div>
 
@@ -145,8 +144,8 @@ export default function Landing() {
 
       <footer className="relative z-10 border-t border-border mt-12">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div>© 2025 CIFHER · Apache 2.0 License · redesign por Lovable</div>
-          <a href="https://github.com/shridarpatil/cifher" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-foreground"><Github className="size-3.5" />shridarpatil/cifher</a>
+          <div>© 2025 CIFHER · Apache 2.0 License</div>
+          <span>Construído com ♥ para times de CX</span>
         </div>
       </footer>
     </div>

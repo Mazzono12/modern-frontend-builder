@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Sparkles, ArrowRight, Github } from "lucide-react";
+import { Sparkles, ArrowRight, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,7 +133,7 @@ export default function Login() {
               onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
               className="w-full h-10 gap-2 border-border bg-secondary/30 hover:bg-secondary"
             >
-              <Github className="size-4" />
+              <UserPlus className="size-4" />
               {mode === "signin" ? "Criar uma conta" : "Já tenho conta — entrar"}
             </Button>
           </form>
