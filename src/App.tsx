@@ -42,7 +42,7 @@ const App = () => (
               <Route path="calling" element={<ComingSoon title="Calling & IVR" description="Chamadas WhatsApp, menus DTMF e roteamento." />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="contacts" element={<Contacts />} />
-              <Route path="templates" element={<ComingSoon title="Templates" description="Mensagens aprovadas pela Meta." />} />
+              <Route path="templates" element={<Templates />} />
               <Route path="settings" element={<Settings />} />
               <Route path="integrations" element={<Integrations />} />
               <Route path="n8n" element={<N8N />} />
