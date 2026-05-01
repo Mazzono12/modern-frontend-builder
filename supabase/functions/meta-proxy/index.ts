@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
         if (!name) return json({ error: "name obrigatório" }, 400);
         const qs = tplId ? `name=${encodeURIComponent(name)}&hsm_id=${encodeURIComponent(tplId)}` : `name=${encodeURIComponent(name)}`;
         url = `${base}/${inst.meta_waba_id}/message_templates?${qs}`;
-        method = "DELETE" as any;
+        method = "DELETE";
         graphBody = null;
         break;
       }
