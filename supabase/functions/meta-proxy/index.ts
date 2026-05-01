@@ -16,7 +16,11 @@ type Action =
   | "send_interactive"  // buttons or list
   | "send_reaction"
   | "mark_read"
-  | "get_phone_info";
+  | "get_phone_info"
+  | "list_templates"
+  | "get_template"
+  | "create_template"
+  | "delete_template";
 
 interface Body {
   instance_id: string;
