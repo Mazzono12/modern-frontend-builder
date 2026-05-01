@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     };
 
     let url = "";
-    let method: "GET" | "POST" = "POST";
+    let method: "GET" | "POST" | "DELETE" = "POST";
     let graphBody: Record<string, unknown> | null = null;
     const p = body.payload ?? {};
 
