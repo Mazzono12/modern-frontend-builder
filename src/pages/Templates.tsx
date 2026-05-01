@@ -100,37 +100,159 @@ export default function Templates() {
 
   function buildComponents() {
     const components: any[] = [];
+
+    // ---- Placeholder helpers (Meta requires {{1}}, {{2}}… sequential, starting at 1, no gaps/duplicates) ----
+    const extractPlaceholders = (text: string): number[] => {
+      const matches = [...text.matchAll(/\{\{\s*(\d+)\s*\}\}/g)].map((m) => Number(m[1]));
+      return matches;
+    };
+    const validateSequential = (nums: number[], where: string) => {
+      if (nums.length === 0) return;
+      const unique = [...new Set(nums)].sort((a, b) => a - b);
+      if (unique[0] !== 1) {
+        throw new Error(`${where}: placeholders devem começar em {{1}} (encontrado {{${unique[0]}}})`);
+      }
+      for (let i = 0; i < unique.length; i++) {
+        if (unique[i] !== i + 1) {
+          throw new Error(`${where}: placeholders devem ser sequenciais sem pular números (faltando {{${i + 1}}})`);
+        }
+      }
+    };
+    const rejectInvalidBraces = (text: string, where: string) => {
+      // Detect malformed placeholders like {1}, {{a}}, {{ 1 }}garbage, {{1}, {{}}
+      const stripped = text.replace(/\{\{\s*\d+\s*\}\}/g, "");
+      if (/\{\{|\}\}/.test(stripped)) {
+        throw new Error(`${where}: placeholder mal formatado. Use exatamente {{1}}, {{2}}…`);
+      }
+    };
+
+    // ---- HEADER (max 1 placeholder for TEXT format per Meta spec) ----
+    let headerPh: number[] = [];
     if (headerText.trim()) {
-      components.push({ type: "HEADER", format: "TEXT", text: headerText.trim() });
+      const text = headerText.trim();
+      if (text.length > 60) throw new Error("Header: máximo 60 caracteres");
+      rejectInvalidBraces(text, "Header");
+      headerPh = extractPlaceholders(text);
+      if (headerPh.length > 1) throw new Error("Header de texto aceita no máximo 1 placeholder ({{1}})");
+      if (headerPh.length === 1 && headerPh[0] !== 1) {
+        throw new Error("Header: o único placeholder deve ser {{1}}");
+      }
+      components.push({ type: "HEADER", format: "TEXT", text });
     }
+
+    // ---- BODY (required, sequential placeholders, max 1024 chars) ----
     if (!bodyText.trim()) throw new Error("Body é obrigatório");
-    components.push({ type: "BODY", text: bodyText.trim() });
+    const body = bodyText.trim();
+    if (body.length > 1024) throw new Error("Body: máximo 1024 caracteres");
+    rejectInvalidBraces(body, "Body");
+    const bodyPh = extractPlaceholders(body);
+    validateSequential(bodyPh, "Body");
+    // Meta hard cap on body variables
+    const bodyMax = bodyPh.length ? Math.max(...bodyPh) : 0;
+    if (bodyMax > 100) throw new Error("Body: no máximo 100 placeholders");
+    components.push({ type: "BODY", text: body });
+
+    // ---- FOOTER (no placeholders allowed, max 60) ----
     if (footerText.trim()) {
-      components.push({ type: "FOOTER", text: footerText.trim() });
+      const footer = footerText.trim();
+      if (footer.length > 60) throw new Error("Footer: máximo 60 caracteres");
+      if (/\{\{/.test(footer)) throw new Error("Footer não pode conter placeholders");
+      components.push({ type: "FOOTER", text: footer });
     }
+
+    // ---- BUTTONS ----
     const lines = buttonsRaw.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 3) throw new Error("Máximo de 3 botões por template");
+
+    let urlButtonsWithVar = 0;
+    const buttonTypes: string[] = [];
+
     if (lines.length) {
-      const buttons = lines.slice(0, 3).map((line) => {
+      const buttons = lines.map((line, idx) => {
+        const where = `Botão ${idx + 1}`;
+
         if (line.toUpperCase().startsWith("URL:")) {
           const rest = line.slice(4);
           const [text, ...urlParts] = rest.split("|");
           const url = urlParts.join("|").trim();
-          if (!text || !url) throw new Error(`Botão URL inválido: ${line} (use URL:texto|https://...)`);
-          return { type: "URL", text: text.trim(), url };
+          const label = (text ?? "").trim();
+          if (!label || !url) throw new Error(`${where}: use URL:texto|https://...`);
+          if (label.length > 25) throw new Error(`${where}: texto do botão máx 25 caracteres`);
+          if (!/^https?:\/\//i.test(url)) throw new Error(`${where}: URL deve começar com http:// ou https://`);
+          if (/\{\{/.test(label)) throw new Error(`${where}: o texto do botão não aceita placeholder`);
+
+          // URL pode conter no máximo 1 placeholder e ele DEVE ser o último, contínuo após body
+          const urlPh = extractPlaceholders(url);
+          rejectInvalidBraces(url, `${where} URL`);
+          if (urlPh.length > 1) throw new Error(`${where}: URL aceita no máximo 1 placeholder`);
+          if (urlPh.length === 1) {
+            urlButtonsWithVar++;
+            // Meta exige que o placeholder seja o próximo após o último do body
+            const expected = bodyMax + 1;
+            if (urlPh[0] !== expected) {
+              throw new Error(
+                `${where}: o placeholder da URL deve ser {{${expected}}} (próximo após o último do body)`,
+              );
+            }
+            // Placeholder deve estar no final da URL
+            if (!/\{\{\s*\d+\s*\}\}\s*$/.test(url)) {
+              throw new Error(`${where}: o placeholder {{${urlPh[0]}}} deve ficar no FINAL da URL`);
+            }
+          }
+          buttonTypes.push("URL");
+          return { type: "URL", text: label, url };
         }
+
         if (line.toUpperCase().startsWith("PHONE:")) {
           const rest = line.slice(6);
           const [text, ...phoneParts] = rest.split("|");
           const phone = phoneParts.join("|").trim();
-          if (!text || !phone) throw new Error(`Botão PHONE inválido: ${line}`);
-          return { type: "PHONE_NUMBER", text: text.trim(), phone_number: phone };
+          const label = (text ?? "").trim();
+          if (!label || !phone) throw new Error(`${where}: use PHONE:texto|+5511999999999`);
+          if (label.length > 25) throw new Error(`${where}: texto do botão máx 25 caracteres`);
+          if (!/^\+?[1-9]\d{6,14}$/.test(phone.replace(/\D/g, "").replace(/^/, phone.startsWith("+") ? "+" : ""))) {
+            // simpler check below
+          }
+          if (!/^\+?\d{8,15}$/.test(phone)) {
+            throw new Error(`${where}: telefone inválido (use formato E.164, ex.: +5511999999999)`);
+          }
+          if (/\{\{/.test(label) || /\{\{/.test(phone)) {
+            throw new Error(`${where}: PHONE não aceita placeholders`);
+          }
+          buttonTypes.push("PHONE_NUMBER");
+          return { type: "PHONE_NUMBER", text: label, phone_number: phone };
         }
+
         // default: quick reply
-        const text = line.replace(/^QR:/i, "").trim();
-        return { type: "QUICK_REPLY", text };
+        const label = line.replace(/^QR:/i, "").trim();
+        if (!label) throw new Error(`${where}: texto vazio`);
+        if (label.length > 25) throw new Error(`${where}: texto do botão máx 25 caracteres`);
+        if (/\{\{/.test(label)) throw new Error(`${where}: QUICK_REPLY não aceita placeholders`);
+        buttonTypes.push("QUICK_REPLY");
+        return { type: "QUICK_REPLY", text: label };
       });
+
+      // Meta não permite misturar QUICK_REPLY com URL/PHONE_NUMBER no mesmo template
+      const hasQR = buttonTypes.includes("QUICK_REPLY");
+      const hasCTA = buttonTypes.includes("URL") || buttonTypes.includes("PHONE_NUMBER");
+      if (hasQR && hasCTA) {
+        throw new Error("Não é permitido misturar botões QUICK_REPLY com URL/PHONE no mesmo template");
+      }
+      // Apenas 1 botão URL com variável e 1 botão PHONE no total
+      if (urlButtonsWithVar > 1) throw new Error("Apenas 1 botão URL pode conter placeholder");
+      const phoneCount = buttonTypes.filter((t) => t === "PHONE_NUMBER").length;
+      if (phoneCount > 1) throw new Error("Apenas 1 botão PHONE_NUMBER é permitido");
+
       components.push({ type: "BUTTONS", buttons });
     }
+
+    // ---- AUTHENTICATION category requires only OTP-style body, no header/footer/CTA URL ----
+    if (category === "AUTHENTICATION") {
+      if (headerText.trim() || footerText.trim()) {
+        throw new Error("Categoria AUTHENTICATION não aceita header/footer livres — use Marketing/Utility");
+      }
+    }
+
     return components;
   }
 
