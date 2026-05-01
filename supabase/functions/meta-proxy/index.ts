@@ -178,6 +178,54 @@ Deno.serve(async (req) => {
         graphBody = null;
         break;
       }
+      case "list_templates": {
+        if (!inst.meta_waba_id) return json({ error: "WABA ID não configurado nesta instância" }, 400);
+        const limit = Math.min(Math.max(Number((p as any).limit ?? 100), 1), 200);
+        const fields = "name,status,category,language,components,id,quality_score,rejected_reason";
+        url = `${base}/${inst.meta_waba_id}/message_templates?fields=${fields}&limit=${limit}`;
+        method = "GET";
+        graphBody = null;
+        break;
+      }
+      case "get_template": {
+        const tplId = String((p as any).template_id ?? "");
+        if (!tplId) return json({ error: "template_id obrigatório" }, 400);
+        url = `${base}/${tplId}?fields=name,status,category,language,components,id,quality_score,rejected_reason`;
+        method = "GET";
+        graphBody = null;
+        break;
+      }
+      case "create_template": {
+        if (!inst.meta_waba_id) return json({ error: "WABA ID não configurado nesta instância" }, 400);
+        const name = String((p as any).name ?? "").trim();
+        const category = String((p as any).category ?? "").trim().toUpperCase();
+        const language = String((p as any).language ?? "pt_BR").trim();
+        const components = (p as any).components;
+        if (!/^[a-z0-9_]{1,512}$/.test(name)) {
+          return json({ error: "Nome inválido: use apenas a-z, 0-9 e _ (sem maiúsculas/espaços)" }, 400);
+        }
+        if (!["MARKETING", "UTILITY", "AUTHENTICATION"].includes(category)) {
+          return json({ error: "Categoria inválida (MARKETING | UTILITY | AUTHENTICATION)" }, 400);
+        }
+        if (!Array.isArray(components) || components.length === 0) {
+          return json({ error: "components deve ser um array não vazio" }, 400);
+        }
+        url = `${base}/${inst.meta_waba_id}/message_templates`;
+        method = "POST";
+        graphBody = { name, category, language, components };
+        break;
+      }
+      case "delete_template": {
+        if (!inst.meta_waba_id) return json({ error: "WABA ID não configurado nesta instância" }, 400);
+        const name = String((p as any).name ?? "").trim();
+        const tplId = String((p as any).template_id ?? "").trim();
+        if (!name) return json({ error: "name obrigatório" }, 400);
+        const qs = tplId ? `name=${encodeURIComponent(name)}&hsm_id=${encodeURIComponent(tplId)}` : `name=${encodeURIComponent(name)}`;
+        url = `${base}/${inst.meta_waba_id}/message_templates?${qs}`;
+        method = "DELETE" as any;
+        graphBody = null;
+        break;
+      }
       default:
         return json({ error: `Ação desconhecida: ${body.action}` }, 400);
     }
