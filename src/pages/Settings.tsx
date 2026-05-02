@@ -182,7 +182,7 @@ export default function Settings() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium">Chaves de API</h3>
-            <p className="text-xs text-muted-foreground">Conecte sua aplicação ao CIFHER</p>
+            <p className="text-xs text-muted-foreground">Conecte sua aplicação ao PEGASUS</p>
           </div>
           <Button variant="outline" size="sm" className="h-8 gap-1.5">
             <KeyRound className="size-3.5" /> Gerar chave

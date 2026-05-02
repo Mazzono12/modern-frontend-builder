@@ -27,7 +27,7 @@ export function AppLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
-  const meta = titles[pathname] ?? { title: "CIFHER" };
+  const meta = titles[pathname] ?? { title: "PEGASUS" };
 
   useEffect(() => {
     let active = true;
