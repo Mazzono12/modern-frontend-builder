@@ -1,11 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Sparkles, ArrowRight, UserPlus } from "lucide-react";
+import { ArrowRight, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import pegasusLogo from "@/assets/pegasus-logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
