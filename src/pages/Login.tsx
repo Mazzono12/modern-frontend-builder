@@ -1,11 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Sparkles, ArrowRight, UserPlus } from "lucide-react";
+import { ArrowRight, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import pegasusLogo from "@/assets/pegasus-logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -53,15 +54,13 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-mesh opacity-80" />
         <div className="absolute inset-0 grid-pattern opacity-30" />
         <div className="relative flex items-center gap-2.5">
-          <div className="size-9 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
-            <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
-          </div>
-          <span className="font-semibold tracking-tight">CIFHER</span>
+          <img src={pegasusLogo} alt="PEGASUS" width={40} height={40} className="size-10 drop-shadow-[0_0_14px_hsl(var(--primary)/0.5)]" />
+          <span className="font-semibold tracking-tight text-lg">PEGASUS</span>
         </div>
         <div className="relative space-y-6 max-w-md">
           <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-wider text-primary/80 px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5">
             <span className="size-1.5 rounded-full bg-primary animate-pulse-glow" />
-            Open-source · Self-hosted
+            IA Autônoma · Self-hosted
           </div>
           <h2 className="text-4xl font-semibold tracking-tight text-balance leading-[1.1]">
             A plataforma definitiva para sua operação de WhatsApp Business.
@@ -74,11 +73,11 @@ export default function Login() {
             <div className="h-8 w-px bg-border" />
             <div><div className="text-mono text-foreground text-lg">99.98%</div>uptime</div>
             <div className="h-8 w-px bg-border" />
-            <div><div className="text-mono text-foreground text-lg">∞</div>open-source</div>
+            <div><div className="text-mono text-foreground text-lg">∞</div>autônoma</div>
           </div>
         </div>
         <div className="relative text-xs text-muted-foreground/70">
-          © 2025 CIFHER · Apache 2.0 License
+          © 2025 PEGASUS · Plataforma autônoma
         </div>
       </aside>
 
@@ -86,10 +85,8 @@ export default function Login() {
       <section className="flex items-center justify-center p-6 lg:p-10 relative">
         <div className="w-full max-w-sm space-y-8 animate-in-up">
           <div className="lg:hidden flex items-center gap-2.5">
-            <div className="size-9 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
-              <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <span className="font-semibold tracking-tight">CIFHER</span>
+            <img src={pegasusLogo} alt="PEGASUS" width={36} height={36} className="size-9" />
+            <span className="font-semibold tracking-tight text-lg">PEGASUS</span>
           </div>
 
           <div className="space-y-2">
@@ -99,7 +96,7 @@ export default function Login() {
             <p className="text-sm text-muted-foreground">
               {mode === "signin"
                 ? "Use suas credenciais para continuar."
-                : "Crie sua conta para começar a usar a CIFHER."}
+                : "Crie sua conta para começar a usar a PEGASUS."}
             </p>
           </div>
 

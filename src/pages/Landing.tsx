@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight, MessageSquare, Megaphone, Bot, PhoneCall, BarChart3, Check } from "lucide-react";
+import { ArrowRight, MessageSquare, Megaphone, Bot, PhoneCall, BarChart3, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import pegasusLogo from "@/assets/pegasus-logo.png";
 
 const features = [
   { icon: MessageSquare, title: "Inbox em tempo real", desc: "WebSocket nativo, atribuição automática e respostas prontas com /atalho." },
@@ -21,10 +22,8 @@ export default function Landing() {
       {/* Nav */}
       <header className="relative z-10 max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
-            <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
-          </div>
-          <span className="font-semibold tracking-tight">CIFHER</span>
+          <img src={pegasusLogo} alt="PEGASUS" width={36} height={36} className="size-9 drop-shadow-[0_0_12px_hsl(var(--primary)/0.45)]" />
+          <span className="font-semibold tracking-tight text-lg">PEGASUS</span>
         </div>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
@@ -44,14 +43,14 @@ export default function Landing() {
       <section className="relative z-10 max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
         <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-wider text-primary/90 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 mb-6 animate-in-up">
           <span className="size-1.5 rounded-full bg-primary animate-pulse-glow" />
-          Open-source · v1.0 disponível
+          IA Autônoma · v1.0 disponível
         </div>
         <h1 className="text-5xl md:text-7xl font-semibold tracking-tight text-balance leading-[1.05] animate-in-up" style={{ animationDelay: "60ms" }}>
           A plataforma WhatsApp <br className="hidden md:block" />
           <span className="bg-gradient-primary bg-clip-text text-transparent">que sua equipe merece.</span>
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto text-balance animate-in-up" style={{ animationDelay: "120ms" }}>
-          Inbox em tempo real, campanhas em massa, chatbots com IA, IVR e analytics — num único produto open-source, rápido e elegante.
+          Inbox em tempo real, campanhas em massa, chatbots com IA, IVR e analytics — num único produto autônomo, rápido e elegante.
         </p>
         <div className="mt-9 flex items-center justify-center gap-3 animate-in-up" style={{ animationDelay: "180ms" }}>
           <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 px-6 gap-2 group">
@@ -68,7 +67,7 @@ export default function Landing() {
             { v: "12,4k+", l: "instalações" },
             { v: "99,98%", l: "uptime" },
             { v: "<50ms", l: "latência média" },
-            { v: "Apache 2.0", l: "open-source" },
+            { v: "IA nativa", l: "autônoma" },
           ].map((m) => (
             <div key={m.l} className="surface-card p-4">
               <div className="text-2xl font-semibold text-mono">{m.v}</div>
@@ -137,14 +136,14 @@ export default function Landing() {
         <p className="mt-4 text-muted-foreground text-balance">Explore o redesign navegável em segundos. Sem cadastro, sem fricção.</p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 px-6 gap-2 group">
-            <Link to="/app">Abrir CIFHER <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
+            <Link to="/app">Abrir PEGASUS <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
           </Button>
         </div>
       </section>
 
       <footer className="relative z-10 border-t border-border mt-12">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div>© 2025 CIFHER · Apache 2.0 License</div>
+          <div>© 2025 PEGASUS · Plataforma autônoma com IA</div>
           <span>Construído com ♥ para times de CX</span>
         </div>
       </footer>
