@@ -57,12 +57,12 @@ export default function Login() {
           <div className="size-9 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
             <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
           </div>
-          <span className="font-semibold tracking-tight">CIFHER</span>
+          <span className="font-semibold tracking-tight">PEGASUS</span>
         </div>
         <div className="relative space-y-6 max-w-md">
           <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-wider text-primary/80 px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5">
             <span className="size-1.5 rounded-full bg-primary animate-pulse-glow" />
-            Open-source · Self-hosted
+            IA Autônoma · Self-hosted
           </div>
           <h2 className="text-4xl font-semibold tracking-tight text-balance leading-[1.1]">
             A plataforma definitiva para sua operação de WhatsApp Business.
@@ -75,11 +75,11 @@ export default function Login() {
             <div className="h-8 w-px bg-border" />
             <div><div className="text-mono text-foreground text-lg">99.98%</div>uptime</div>
             <div className="h-8 w-px bg-border" />
-            <div><div className="text-mono text-foreground text-lg">∞</div>open-source</div>
+            <div><div className="text-mono text-foreground text-lg">∞</div>autônoma</div>
           </div>
         </div>
         <div className="relative text-xs text-muted-foreground/70">
-          © 2025 CIFHER · Apache 2.0 License
+          © 2025 PEGASUS · Plataforma autônoma
         </div>
       </aside>
 
@@ -90,7 +90,7 @@ export default function Login() {
             <div className="size-9 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
               <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
             </div>
-            <span className="font-semibold tracking-tight">CIFHER</span>
+            <span className="font-semibold tracking-tight">PEGASUS</span>
           </div>
 
           <div className="space-y-2">
@@ -100,7 +100,7 @@ export default function Login() {
             <p className="text-sm text-muted-foreground">
               {mode === "signin"
                 ? "Use suas credenciais para continuar."
-                : "Crie sua conta para começar a usar a CIFHER."}
+                : "Crie sua conta para começar a usar a PEGASUS."}
             </p>
           </div>
 

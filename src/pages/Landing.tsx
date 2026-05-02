@@ -25,7 +25,7 @@ export default function Landing() {
           <div className="size-8 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
             <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
           </div>
-          <span className="font-semibold tracking-tight">CIFHER</span>
+          <span className="font-semibold tracking-tight">PEGASUS</span>
         </div>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
@@ -138,7 +138,7 @@ export default function Landing() {
         <p className="mt-4 text-muted-foreground text-balance">Explore o redesign navegável em segundos. Sem cadastro, sem fricção.</p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 px-6 gap-2 group">
-            <Link to="/app">Abrir CIFHER <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
+            <Link to="/app">Abrir PEGASUS <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
           </Button>
         </div>
       </section>
