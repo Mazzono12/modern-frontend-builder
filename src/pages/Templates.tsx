@@ -206,21 +206,45 @@ export default function Templates() {
         if (line.toUpperCase().startsWith("PHONE:")) {
           const rest = line.slice(6);
           const [text, ...phoneParts] = rest.split("|");
-          const phone = phoneParts.join("|").trim();
+          const phoneRaw = phoneParts.join("|").trim();
           const label = (text ?? "").trim();
-          if (!label || !phone) throw new Error(`${where}: use PHONE:texto|+5511999999999`);
+          if (!label || !phoneRaw) throw new Error(`${where}: use PHONE:texto|+5511999999999`);
           if (label.length > 25) throw new Error(`${where}: texto do botão máx 25 caracteres`);
-          if (!/^\+?[1-9]\d{6,14}$/.test(phone.replace(/\D/g, "").replace(/^/, phone.startsWith("+") ? "+" : ""))) {
-            // simpler check below
-          }
-          if (!/^\+?\d{8,15}$/.test(phone)) {
-            throw new Error(`${where}: telefone inválido (use formato E.164, ex.: +5511999999999)`);
-          }
-          if (/\{\{/.test(label) || /\{\{/.test(phone)) {
+          if (/\{\{/.test(label) || /\{\{/.test(phoneRaw)) {
             throw new Error(`${where}: PHONE não aceita placeholders`);
           }
+
+          // ---- E.164 estrito (Meta Cloud API v23.0) ----
+          // Regras: começa com '+', seguido de dígito 1-9, total de 8 a 15 dígitos.
+          // NÃO permite espaços, hífens, parênteses, pontos ou qualquer outro caractere.
+          if (/[\s\-().]/.test(phoneRaw)) {
+            throw new Error(
+              `${where}: telefone não pode conter espaços, hífens, parênteses ou pontos (E.164 puro)`,
+            );
+          }
+          if (!phoneRaw.startsWith("+")) {
+            throw new Error(`${where}: telefone deve começar com '+' e código do país (ex.: +5511999999999)`);
+          }
+          if (/[^\d+]/.test(phoneRaw)) {
+            throw new Error(`${where}: telefone aceita apenas '+' e dígitos 0-9`);
+          }
+          const E164 = /^\+[1-9]\d{7,14}$/;
+          if (!E164.test(phoneRaw)) {
+            const digits = phoneRaw.slice(1);
+            if (digits.length < 8) {
+              throw new Error(`${where}: telefone curto demais (mínimo 8 dígitos após o '+')`);
+            }
+            if (digits.length > 15) {
+              throw new Error(`${where}: telefone longo demais (máximo 15 dígitos após o '+')`);
+            }
+            if (digits.startsWith("0")) {
+              throw new Error(`${where}: o primeiro dígito após o '+' não pode ser 0 (use código de país válido)`);
+            }
+            throw new Error(`${where}: telefone inválido (formato E.164: +<código país><número>)`);
+          }
+
           buttonTypes.push("PHONE_NUMBER");
-          return { type: "PHONE_NUMBER", text: label, phone_number: phone };
+          return { type: "PHONE_NUMBER", text: label, phone_number: phoneRaw };
         }
 
         // default: quick reply
