@@ -22,10 +22,8 @@ export default function Landing() {
       {/* Nav */}
       <header className="relative z-10 max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
-            <Sparkles className="size-4 text-primary-foreground" strokeWidth={2.5} />
-          </div>
-          <span className="font-semibold tracking-tight">PEGASUS</span>
+          <img src={pegasusLogo} alt="PEGASUS" width={36} height={36} className="size-9 drop-shadow-[0_0_12px_hsl(var(--primary)/0.45)]" />
+          <span className="font-semibold tracking-tight text-lg">PEGASUS</span>
         </div>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
