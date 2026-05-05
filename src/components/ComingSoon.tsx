@@ -15,7 +15,7 @@ export function ComingSoon({ title, description }: { title: string; description:
           </div>
           <h3 className="text-lg font-display font-medium">Módulo em construção</h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-            Esta tela faz parte do redesign completo da plataforma PEGASUS. Estamos priorizando os módulos com maior
+            Esta tela faz parte do redesign completo da plataforma CIFHER. Estamos priorizando os módulos com maior
             impacto primeiro.
           </p>
         </div>

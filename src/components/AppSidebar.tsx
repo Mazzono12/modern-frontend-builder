@@ -27,7 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import pegasusLogo from "@/assets/pegasus-logo.png";
+import { PlanetLogo } from "@/components/PlanetLogo";
 
 const main = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
@@ -63,10 +63,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="px-3 py-4">
         <div className="flex items-center gap-2.5">
-          <img src={pegasusLogo} alt="PEGASUS" width={32} height={32} className="size-8 drop-shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
+          <PlanetLogo size={32} />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-display font-semibold tracking-tight">PEGASUS</span>
+              <span className="text-sm font-display font-semibold tracking-tight">CIFHER</span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Workspace · Acme</span>
             </div>
           )}

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, MessageSquare, Megaphone, Bot, PhoneCall, BarChart3, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import pegasusLogo from "@/assets/pegasus-logo.png";
+import { PlanetLogo } from "@/components/PlanetLogo";
 
 const features = [
   { icon: MessageSquare, title: "Inbox em tempo real", desc: "WebSocket nativo, atribuição automática e respostas prontas com /atalho." },
@@ -22,8 +22,8 @@ export default function Landing() {
       {/* Nav */}
       <header className="relative z-10 max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <img src={pegasusLogo} alt="PEGASUS" width={36} height={36} className="size-9 drop-shadow-[0_0_12px_hsl(var(--primary)/0.45)]" />
-          <span className="font-semibold tracking-tight text-lg">PEGASUS</span>
+          <PlanetLogo size={36} />
+          <span className="font-semibold tracking-tight text-lg">CIFHER</span>
         </div>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
@@ -136,14 +136,14 @@ export default function Landing() {
         <p className="mt-4 text-muted-foreground text-balance">Explore o redesign navegável em segundos. Sem cadastro, sem fricção.</p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 px-6 gap-2 group">
-            <Link to="/app">Abrir PEGASUS <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
+            <Link to="/app">Abrir CIFHER <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
           </Button>
         </div>
       </section>
 
       <footer className="relative z-10 border-t border-border mt-12">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div>© 2025 PEGASUS · Plataforma autônoma com IA</div>
+          <div>© 2025 CIFHER · Plataforma autônoma com IA</div>
           <span>Construído com ♥ para times de CX</span>
         </div>
       </footer>

@@ -74,7 +74,7 @@ export default function Contacts() {
         "Valor total": `R$ ${c.totalValue.toLocaleString("pt-BR")}`,
       })),
       `contatos-${new Date().toISOString().slice(0, 10)}.pdf`,
-      { title: "Contatos · PEGASUS" },
+      { title: "Contatos · CIFHER" },
     );
     toast.success("PDF exportado");
   };

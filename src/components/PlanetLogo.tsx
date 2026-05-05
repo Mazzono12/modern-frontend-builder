@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import planet3d from "@/assets/planet-3d.png";
 
 /**
- * PEGASUS planet logo — photorealistic 3D Earth that rotates in a continuous loop
+ * CIFHER planet logo — photorealistic 3D Earth that rotates in a continuous loop
  * and dynamically tints itself to the active accent color via CSS blend modes.
  *
  * Approach:
@@ -18,7 +18,7 @@ export function PlanetLogo({ className, size = 32 }: { className?: string; size?
     <div
       className={cn("relative shrink-0", className)}
       style={{ width: size, height: size }}
-      aria-label="PEGASUS"
+      aria-label="CIFHER"
       role="img"
     >
       {/* Outer atmospheric glow */}
