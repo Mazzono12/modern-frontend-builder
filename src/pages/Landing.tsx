@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, MessageSquare, Megaphone, Bot, PhoneCall, BarChart3, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import pegasusLogo from "@/assets/pegasus-logo.png";
+import { PlanetLogo } from "@/components/PlanetLogo";
 
 const features = [
   { icon: MessageSquare, title: "Inbox em tempo real", desc: "WebSocket nativo, atribuição automática e respostas prontas com /atalho." },
@@ -22,7 +22,7 @@ export default function Landing() {
       {/* Nav */}
       <header className="relative z-10 max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <img src={pegasusLogo} alt="CIFHER" width={36} height={36} className="size-9 drop-shadow-[0_0_12px_hsl(var(--primary)/0.45)]" />
+          <PlanetLogo size={36} />
           <span className="font-semibold tracking-tight text-lg">CIFHER</span>
         </div>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">

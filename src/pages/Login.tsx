@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import pegasusLogo from "@/assets/pegasus-logo.png";
+import { PlanetLogo } from "@/components/PlanetLogo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-mesh opacity-80" />
         <div className="absolute inset-0 grid-pattern opacity-30" />
         <div className="relative flex items-center gap-2.5">
-          <img src={pegasusLogo} alt="CIFHER" width={40} height={40} className="size-10 drop-shadow-[0_0_14px_hsl(var(--primary)/0.5)]" />
+          <PlanetLogo size={40} />
           <span className="font-semibold tracking-tight text-lg">CIFHER</span>
         </div>
         <div className="relative space-y-6 max-w-md">
@@ -85,7 +85,7 @@ export default function Login() {
       <section className="flex items-center justify-center p-6 lg:p-10 relative">
         <div className="w-full max-w-sm space-y-8 animate-in-up">
           <div className="lg:hidden flex items-center gap-2.5">
-            <img src={pegasusLogo} alt="CIFHER" width={36} height={36} className="size-9" />
+            <PlanetLogo size={36} />
             <span className="font-semibold tracking-tight text-lg">CIFHER</span>
           </div>
 
