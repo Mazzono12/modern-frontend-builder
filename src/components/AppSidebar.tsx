@@ -42,6 +42,7 @@ const main = [
 
 const secondary = [
   { title: "Contatos", url: "/app/contacts", icon: Users },
+  { title: "Grupos", url: "/app/groups", icon: UsersRound },
   { title: "Templates", url: "/app/templates", icon: FileText },
   { title: "Integrações", url: "/app/integrations", icon: Plug },
   { title: "n8n · Agentes", url: "/app/n8n", icon: Workflow },
