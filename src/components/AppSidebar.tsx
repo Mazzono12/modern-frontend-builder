@@ -63,10 +63,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="px-3 py-4">
         <div className="flex items-center gap-2.5">
-          <img src={pegasusLogo} alt="PEGASUS" width={32} height={32} className="size-8 drop-shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
+          <img src={pegasusLogo} alt="CIFHER" width={32} height={32} className="size-8 drop-shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-display font-semibold tracking-tight">PEGASUS</span>
+              <span className="text-sm font-display font-semibold tracking-tight">CIFHER</span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Workspace · Acme</span>
             </div>
           )}

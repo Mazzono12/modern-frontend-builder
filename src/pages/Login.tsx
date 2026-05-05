@@ -54,8 +54,8 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-mesh opacity-80" />
         <div className="absolute inset-0 grid-pattern opacity-30" />
         <div className="relative flex items-center gap-2.5">
-          <img src={pegasusLogo} alt="PEGASUS" width={40} height={40} className="size-10 drop-shadow-[0_0_14px_hsl(var(--primary)/0.5)]" />
-          <span className="font-semibold tracking-tight text-lg">PEGASUS</span>
+          <img src={pegasusLogo} alt="CIFHER" width={40} height={40} className="size-10 drop-shadow-[0_0_14px_hsl(var(--primary)/0.5)]" />
+          <span className="font-semibold tracking-tight text-lg">CIFHER</span>
         </div>
         <div className="relative space-y-6 max-w-md">
           <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-wider text-primary/80 px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5">
@@ -77,7 +77,7 @@ export default function Login() {
           </div>
         </div>
         <div className="relative text-xs text-muted-foreground/70">
-          © 2025 PEGASUS · Plataforma autônoma
+          © 2025 CIFHER · Plataforma autônoma
         </div>
       </aside>
 
@@ -85,8 +85,8 @@ export default function Login() {
       <section className="flex items-center justify-center p-6 lg:p-10 relative">
         <div className="w-full max-w-sm space-y-8 animate-in-up">
           <div className="lg:hidden flex items-center gap-2.5">
-            <img src={pegasusLogo} alt="PEGASUS" width={36} height={36} className="size-9" />
-            <span className="font-semibold tracking-tight text-lg">PEGASUS</span>
+            <img src={pegasusLogo} alt="CIFHER" width={36} height={36} className="size-9" />
+            <span className="font-semibold tracking-tight text-lg">CIFHER</span>
           </div>
 
           <div className="space-y-2">
@@ -96,7 +96,7 @@ export default function Login() {
             <p className="text-sm text-muted-foreground">
               {mode === "signin"
                 ? "Use suas credenciais para continuar."
-                : "Crie sua conta para começar a usar a PEGASUS."}
+                : "Crie sua conta para começar a usar a CIFHER."}
             </p>
           </div>
 
