@@ -7,6 +7,7 @@ import {
   PhoneCall,
   BarChart3,
   Users,
+  UsersRound,
   FileText,
   Settings,
   KanbanSquare,
