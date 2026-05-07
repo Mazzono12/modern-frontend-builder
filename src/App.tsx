@@ -19,6 +19,7 @@ import Integrations from "./pages/Integrations.tsx";
 import Templates from "./pages/Templates.tsx";
 import N8N from "./pages/N8N.tsx";
 import Groups from "./pages/Groups.tsx";
+import SmsBlast from "./pages/SmsBlast.tsx";
 import { ComingSoon } from "./components/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 
