@@ -13,6 +13,7 @@ import {
   KanbanSquare,
   Plug,
   Workflow,
+  Send,
 } from "lucide-react";
 import {
   Sidebar,
