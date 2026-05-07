@@ -45,6 +45,7 @@ const App = () => (
               <Route path="analytics" element={<Analytics />} />
               <Route path="contacts" element={<Contacts />} />
               <Route path="groups" element={<Groups />} />
+              <Route path="sms" element={<SmsBlast />} />
               <Route path="templates" element={<Templates />} />
               <Route path="settings" element={<Settings />} />
               <Route path="integrations" element={<Integrations />} />
