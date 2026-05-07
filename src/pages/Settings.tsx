@@ -154,6 +154,9 @@ export default function Settings() {
         </div>
       </section>
 
+      {/* Bot / Assistant */}
+      <BotSettingsCard />
+
       {/* Notifications */}
       <section className="glass rounded-xl p-6 space-y-4">
         <div>
