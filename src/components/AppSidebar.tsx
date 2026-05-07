@@ -13,6 +13,7 @@ import {
   KanbanSquare,
   Plug,
   Workflow,
+  Send,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ const main = [
   { title: "Campanhas", url: "/app/campaigns", icon: Megaphone },
   { title: "Chatbot", url: "/app/chatbot", icon: Bot },
   { title: "Calling & IVR", url: "/app/calling", icon: PhoneCall },
+  { title: "SMS em massa", url: "/app/sms", icon: Send },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
 ];
 

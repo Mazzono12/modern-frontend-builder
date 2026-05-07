@@ -229,6 +229,118 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_campaigns: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          failed_count: number
+          id: string
+          instance_id: string | null
+          instance_name: string | null
+          message: string
+          name: string
+          scheduled_at: string | null
+          sent_count: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["sms_campaign_status"]
+          throttle_ms: number
+          total_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          message: string
+          name: string
+          scheduled_at?: string | null
+          sent_count?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["sms_campaign_status"]
+          throttle_ms?: number
+          total_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          message?: string
+          name?: string
+          scheduled_at?: string | null
+          sent_count?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["sms_campaign_status"]
+          throttle_ms?: number
+          total_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_campaigns_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "evo_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          error: string | null
+          id: string
+          phone: string
+          rendered_message: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["sms_recipient_status"]
+          user_id: string
+          variables: Json
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          phone: string
+          rendered_message?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["sms_recipient_status"]
+          user_id: string
+          variables?: Json
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          phone?: string
+          rendered_message?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["sms_recipient_status"]
+          user_id?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "sms_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -244,6 +356,14 @@ export type Database = {
         | "connected"
         | "error"
       evo_provider: "evolution" | "meta_cloud"
+      sms_campaign_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "completed"
+        | "failed"
+        | "canceled"
+      sms_recipient_status: "pending" | "sent" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -379,6 +499,15 @@ export const Constants = {
         "error",
       ],
       evo_provider: ["evolution", "meta_cloud"],
+      sms_campaign_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "completed",
+        "failed",
+        "canceled",
+      ],
+      sms_recipient_status: ["pending", "sent", "failed"],
     },
   },
 } as const
