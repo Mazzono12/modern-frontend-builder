@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      bot_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          model: string
+          name: string
+          quick_replies: Json
+          status_text: string
+          system_prompt: string
+          temperature: number
+          updated_at: string
+          user_id: string
+          welcome_message: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          model?: string
+          name?: string
+          quick_replies?: Json
+          status_text?: string
+          system_prompt?: string
+          temperature?: number
+          updated_at?: string
+          user_id: string
+          welcome_message?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          model?: string
+          name?: string
+          quick_replies?: Json
+          status_text?: string
+          system_prompt?: string
+          temperature?: number
+          updated_at?: string
+          user_id?: string
+          welcome_message?: string
+        }
+        Relationships: []
+      }
       evo_instance_events: {
         Row: {
           created_at: string

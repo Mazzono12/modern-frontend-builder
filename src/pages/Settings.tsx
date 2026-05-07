@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useTheme, ACCENTS, Accent } from "@/components/ThemeProvider";
 import { toast } from "sonner";
+import { BotSettingsCard } from "@/components/BotSettingsCard";
 
 export default function Settings() {
   const { accent, setAccent, mode, toggleMode } = useTheme();
@@ -152,6 +153,9 @@ export default function Settings() {
           </div>
         </div>
       </section>
+
+      {/* Bot / Assistant */}
+      <BotSettingsCard />
 
       {/* Notifications */}
       <section className="glass rounded-xl p-6 space-y-4">

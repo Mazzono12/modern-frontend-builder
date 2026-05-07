@@ -1,44 +1,87 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Sparkles, Bot } from "lucide-react";
+import { MessageCircle, X, Send, Sparkles, Bot, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
-type Msg = { id: string; from: "bot" | "user"; text: string };
+type Msg = { id: string; role: "assistant" | "user"; content: string };
 
-const seed: Msg[] = [
-  { id: "s1", from: "bot", text: "Oi! Sou o assistente CIFHER ✨ Posso ajudar com campanhas, fluxos ou métricas." },
-];
+type BotConfig = {
+  enabled: boolean;
+  name: string;
+  welcome_message: string;
+  status_text: string;
+  quick_replies: string[];
+};
 
-const quickReplies = ["Como criar campanha?", "Ver métricas de hoje", "Treinar chatbot", "Falar com humano"];
+const FALLBACK: BotConfig = {
+  enabled: true,
+  name: "CIFHER AI",
+  welcome_message: "Oi! Sou o assistente CIFHER ✨ Como posso ajudar?",
+  status_text: "Online · resposta em segundos",
+  quick_replies: ["Como criar campanha?", "Ver métricas de hoje", "Treinar chatbot", "Falar com humano"],
+};
 
 export function FloatingChatbot() {
   const [open, setOpen] = useState(false);
-  const [msgs, setMsgs] = useState<Msg[]>(seed);
+  const [config, setConfig] = useState<BotConfig>(FALLBACK);
+  const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
   const scroll = useRef<HTMLDivElement>(null);
+
+  async function loadConfig() {
+    const { data } = await supabase.from("bot_settings").select("enabled,name,welcome_message,status_text,quick_replies").maybeSingle();
+    if (data) {
+      const cfg: BotConfig = {
+        enabled: data.enabled,
+        name: data.name,
+        welcome_message: data.welcome_message,
+        status_text: data.status_text,
+        quick_replies: Array.isArray(data.quick_replies) ? (data.quick_replies as string[]) : FALLBACK.quick_replies,
+      };
+      setConfig(cfg);
+      setMsgs([{ id: "welcome", role: "assistant", content: cfg.welcome_message }]);
+    } else {
+      setMsgs([{ id: "welcome", role: "assistant", content: FALLBACK.welcome_message }]);
+    }
+  }
+
+  useEffect(() => {
+    loadConfig();
+    const onUpdate = () => loadConfig();
+    window.addEventListener("bot-settings-updated", onUpdate);
+    return () => window.removeEventListener("bot-settings-updated", onUpdate);
+  }, []);
 
   useEffect(() => {
     scroll.current?.scrollTo({ top: scroll.current.scrollHeight, behavior: "smooth" });
-  }, [msgs, open]);
+  }, [msgs, open, sending]);
 
-  const send = (text: string) => {
+  async function send(text: string) {
     const t = text.trim();
-    if (!t) return;
-    const userMsg: Msg = { id: `u-${Date.now()}`, from: "user", text: t };
-    setMsgs((m) => [...m, userMsg]);
+    if (!t || sending) return;
+    const userMsg: Msg = { id: `u-${Date.now()}`, role: "user", content: t };
+    const next = [...msgs, userMsg];
+    setMsgs(next);
     setInput("");
-    setTimeout(() => {
-      setMsgs((m) => [
-        ...m,
-        {
-          id: `b-${Date.now()}`,
-          from: "bot",
-          text:
-            "Entendi! Em uma versão real, eu consultaria sua base agora. Por enquanto, esta é uma demo do chat flutuante.",
-        },
-      ]);
-    }, 700);
-  };
+    setSending(true);
+    try {
+      const payload = next
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({ role: m.role, content: m.content }));
+      const { data, error } = await supabase.functions.invoke("bot-chat", { body: { messages: payload } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setMsgs((m) => [...m, { id: `b-${Date.now()}`, role: "assistant", content: data?.reply || "(sem resposta)" }]);
+    } catch (e: any) {
+      setMsgs((m) => [...m, { id: `e-${Date.now()}`, role: "assistant", content: `⚠️ ${e?.message ?? "Erro ao consultar o assistente."}` }]);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (!config.enabled) return null;
 
   return (
     <>
@@ -57,12 +100,12 @@ export function FloatingChatbot() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold flex items-center gap-1.5">
-                  CIFHER AI
+                  {config.name}
                   <Sparkles className="size-3 text-primary" />
                 </div>
                 <div className="text-[11px] text-success flex items-center gap-1.5">
                   <span className="size-1.5 rounded-full bg-success animate-pulse" />
-                  Online · resposta em segundos
+                  {config.status_text}
                 </div>
               </div>
               <Button variant="ghost" size="icon" className="size-7" onClick={() => setOpen(false)}>
@@ -72,21 +115,28 @@ export function FloatingChatbot() {
 
             <div ref={scroll} className="flex-1 overflow-auto p-4 space-y-3">
               {msgs.map((m) => (
-                <div key={m.id} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
+                <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm ${
-                      m.from === "user"
+                    className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap ${
+                      m.role === "user"
                         ? "bg-primary text-primary-foreground rounded-br-sm"
                         : "bg-secondary/70 text-foreground rounded-bl-sm border border-border"
                     }`}
                   >
-                    {m.text}
+                    {m.content}
                   </div>
                 </div>
               ))}
-              {msgs.length <= 1 && (
+              {sending && (
+                <div className="flex justify-start">
+                  <div className="px-3.5 py-2.5 rounded-2xl bg-secondary/70 border border-border text-muted-foreground text-sm flex items-center gap-2">
+                    <Loader2 className="size-3.5 animate-spin" /> pensando…
+                  </div>
+                </div>
+              )}
+              {msgs.length <= 1 && config.quick_replies.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2">
-                  {quickReplies.map((q) => (
+                  {config.quick_replies.map((q) => (
                     <button
                       key={q}
                       onClick={() => send(q)}
@@ -112,8 +162,8 @@ export function FloatingChatbot() {
                 placeholder="Pergunte algo…"
                 className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/60 transition-colors"
               />
-              <Button type="submit" size="icon" className="size-9 bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Send className="size-4" />
+              <Button type="submit" size="icon" disabled={sending} className="size-9 bg-primary hover:bg-primary/90 text-primary-foreground">
+                {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </Button>
             </form>
           </motion.div>
