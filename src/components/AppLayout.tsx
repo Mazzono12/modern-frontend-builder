@@ -10,15 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 const titles: Record<string, { title: string; sub?: string }> = {
   "/app": { title: "Dashboard", sub: "Visão executiva da operação" },
-  "/app/inbox": { title: "Unified Inbox", sub: "Conversas omnichannel" },
   "/app/pipeline": { title: "Pipeline", sub: "Kanban de leads" },
   "/app/campaigns": { title: "Campanhas", sub: "Disparos em massa" },
   "/app/chatbot": { title: "Chatbot", sub: "Construtor de fluxos" },
   "/app/calling": { title: "Calling & IVR", sub: "Voz e roteamento" },
   "/app/analytics": { title: "Analytics", sub: "Métricas e desempenho" },
   "/app/contacts": { title: "Contatos", sub: "CRM da sua base" },
-  "/app/templates": { title: "Templates", sub: "Mensagens aprovadas" },
-  "/app/integrations": { title: "Integrações", sub: "Evolution API · WhatsApp" },
   "/app/n8n": { title: "n8n · Agentes & Automação", sub: "Workflows e webhooks" },
   "/app/settings": { title: "Configurações", sub: "Workspace e integrações" },
 };
