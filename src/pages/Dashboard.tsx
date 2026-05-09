@@ -133,7 +133,7 @@ export default function Dashboard() {
 
       {/* Funnel + Volume */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="glass rounded-xl p-5 lg:col-span-2">
+        <div className="surface-card card-hover p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-medium">Volume de mensagens</h3>
@@ -168,7 +168,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="mb-4">
             <h3 className="text-sm font-medium">Funil de conversão</h3>
             <p className="text-xs text-muted-foreground">Visitante → Cliente</p>
@@ -183,7 +183,7 @@ export default function Dashboard() {
 
       {/* Agents + Activity + Channel bar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="mb-4">
             <h3 className="text-sm font-medium">Por canal</h3>
             <p className="text-xs text-muted-foreground">Conversas atribuídas</p>
@@ -207,7 +207,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-medium">Agentes em destaque</h3>
@@ -234,7 +234,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="mb-4">
             <h3 className="text-sm font-medium">Atividade recente</h3>
             <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
