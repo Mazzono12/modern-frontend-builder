@@ -1,5 +1,5 @@
-import { TrendingUp, TrendingDown, MessageSquare, Users, Send, Clock, ArrowUpRight, Sparkles } from "lucide-react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
+import { TrendingUp, TrendingDown, MessageSquare, Users, Send, Clock, ArrowUpRight, Sparkles, Activity } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, BarChart, Bar, Line, LineChart } from "recharts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CountUp } from "@/components/CountUp";
@@ -20,13 +20,16 @@ const channelData = [
   { name: "NPS", value: 880 },
 ];
 
-type Kpi = { label: string; value: number; suffix?: string; prefix?: string; decimals?: number; delta: string; up: boolean; icon: any };
+const spark = (seed: number) =>
+  Array.from({ length: 12 }, (_, i) => ({ v: 50 + Math.round(Math.sin((i + seed) / 1.6) * 18 + Math.random() * 12) }));
+
+type Kpi = { label: string; value: number; suffix?: string; prefix?: string; decimals?: number; delta: string; up: boolean; icon: any; data: { v: number }[] };
 
 const kpis: Kpi[] = [
-  { label: "Mensagens hoje", value: 24812, delta: "+12,4%", up: true, icon: MessageSquare },
-  { label: "Conversas ativas", value: 1284, delta: "+3,1%", up: true, icon: Users },
-  { label: "Taxa de resposta", value: 94.2, suffix: "%", decimals: 1, delta: "−0,6%", up: false, icon: Send },
-  { label: "Tempo médio (s)", value: 102, suffix: "s", delta: "−18s", up: true, icon: Clock },
+  { label: "Mensagens hoje", value: 24812, delta: "+12,4%", up: true, icon: MessageSquare, data: spark(1) },
+  { label: "Conversas ativas", value: 1284, delta: "+3,1%", up: true, icon: Users, data: spark(3) },
+  { label: "Taxa de resposta", value: 94.2, suffix: "%", decimals: 1, delta: "−0,6%", up: false, icon: Send, data: spark(5) },
+  { label: "Tempo médio (s)", value: 102, suffix: "s", delta: "−18s", up: true, icon: Clock, data: spark(7) },
 ];
 
 const funnelStages = [
@@ -55,15 +58,24 @@ export default function Dashboard() {
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-2xl lg:text-3xl font-display font-semibold tracking-tight">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-wrap items-end justify-between gap-4"
+      >
+        <div className="space-y-2">
+          <span className="chip">
+            <span className="size-1.5 rounded-full bg-success animate-pulse-glow" />
+            Operação ao vivo
+          </span>
+          <h2 className="text-2xl lg:text-3xl font-display font-semibold tracking-tight text-balance">
             Bem-vinda, <span className="text-gradient">Sara</span> 👋
           </h2>
           <p className="text-sm text-muted-foreground">Aqui está o pulso da sua operação nos últimos 14 dias.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 border-border bg-secondary/40 backdrop-blur">
+          <Button variant="outline" size="sm" className="h-9 border-border bg-secondary/40 backdrop-blur hover:border-primary/40">
             Últimos 14 dias
           </Button>
           <Button size="sm" className="h-9 bg-gradient-primary text-primary-foreground hover:opacity-90 gap-1 shadow-glow">
@@ -71,7 +83,7 @@ export default function Dashboard() {
             Nova campanha <ArrowUpRight className="size-3.5" />
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -81,26 +93,39 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: idx * 0.06 }}
-            className="glass rounded-xl p-5 group hover:border-primary/40 transition-colors relative overflow-hidden"
+            className="surface-card card-hover p-5 group relative overflow-hidden"
           >
             <div
-              className="absolute -top-12 -right-12 size-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity blur-2xl"
-              style={{ background: "hsl(var(--primary) / 0.25)" }}
+              className="absolute -top-16 -right-16 size-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-3xl"
+              style={{ background: "hsl(var(--primary) / 0.3)" }}
             />
             <div className="flex items-center justify-between relative">
-              <span className="text-[11px] text-muted-foreground uppercase tracking-wider">{k.label}</span>
-              <div className="size-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 grid place-items-center text-primary border border-primary/20">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-[0.14em] font-medium">{k.label}</span>
+              <div className="size-9 rounded-lg bg-gradient-to-br from-primary/25 to-primary/5 grid place-items-center text-primary border border-primary/20 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]">
                 <k.icon className="size-4" />
               </div>
             </div>
             <div className="mt-4 flex items-baseline gap-2 relative">
-              <span className="text-3xl font-display font-semibold tracking-tight">
+              <span className="text-[28px] lg:text-3xl font-display font-semibold tracking-tight tabular-nums">
                 <CountUp value={k.value} decimals={k.decimals ?? 0} prefix={k.prefix ?? ""} suffix={k.suffix ?? ""} />
               </span>
-              <span className={`text-xs flex items-center gap-0.5 ${k.up ? "text-success" : "text-destructive"}`}>
+              <span className={`text-[11px] flex items-center gap-0.5 font-medium ${k.up ? "text-success" : "text-destructive"}`}>
                 {k.up ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
                 {k.delta}
               </span>
+            </div>
+            <div className="mt-3 h-10 -mx-1 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={k.data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+                  <Line
+                    type="monotone"
+                    dataKey="v"
+                    stroke={k.up ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
+                    strokeWidth={1.75}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </motion.div>
         ))}
@@ -108,7 +133,7 @@ export default function Dashboard() {
 
       {/* Funnel + Volume */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="glass rounded-xl p-5 lg:col-span-2">
+        <div className="surface-card card-hover p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-medium">Volume de mensagens</h3>
@@ -143,7 +168,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="mb-4">
             <h3 className="text-sm font-medium">Funil de conversão</h3>
             <p className="text-xs text-muted-foreground">Visitante → Cliente</p>
@@ -158,7 +183,7 @@ export default function Dashboard() {
 
       {/* Agents + Activity + Channel bar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="mb-4">
             <h3 className="text-sm font-medium">Por canal</h3>
             <p className="text-xs text-muted-foreground">Conversas atribuídas</p>
@@ -182,7 +207,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-medium">Agentes em destaque</h3>
@@ -209,7 +234,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass rounded-xl p-5">
+        <div className="surface-card card-hover p-5">
           <div className="mb-4">
             <h3 className="text-sm font-medium">Atividade recente</h3>
             <p className="text-xs text-muted-foreground">Últimas 24 horas</p>

@@ -54,18 +54,19 @@ export function AppLayout() {
         <div className="pointer-events-none fixed inset-0 -z-10" style={{ background: "var(--gradient-aurora)" }} />
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 px-4 border-b border-border glass sticky top-0 z-30">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-            <div className="h-5 w-px bg-border" />
-            <div className="flex flex-col leading-tight min-w-0">
-              <h1 className="text-sm font-semibold truncate">{meta.title}</h1>
+          <header className="h-14 flex items-center gap-3 px-4 border-b border-border/60 glass sticky top-0 z-30 relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-x-0 -top-20 h-20 bg-gradient-to-b from-primary/10 to-transparent blur-2xl" />
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground relative z-10" />
+            <div className="h-5 w-px bg-border relative z-10" />
+            <div className="flex flex-col leading-tight min-w-0 relative z-10">
+              <h1 className="text-sm font-display font-semibold tracking-tight truncate">{meta.title}</h1>
               {meta.sub && <span className="text-[11px] text-muted-foreground truncate">{meta.sub}</span>}
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2 relative z-10">
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-muted-foreground hover:text-foreground h-8 px-3 border border-border bg-secondary/40 rounded-md hidden md:inline-flex"
+                className="gap-2 text-muted-foreground hover:text-foreground h-8 px-3 border border-border bg-secondary/40 rounded-md hidden md:inline-flex transition-colors hover:border-primary/40"
               >
                 <Search className="size-3.5" />
                 <span className="text-xs">Buscar…</span>
