@@ -152,6 +152,21 @@
     @apply border border-border rounded-xl backdrop-blur-sm;
   }
   .surface-glow { box-shadow: var(--shadow-glow); }
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow: 0 1px 0 0 hsl(0 0% 100% / 0.05) inset, 0 18px 48px -18px hsl(var(--primary) / 0.35);
+  }
+  .divider-soft {
+    background: linear-gradient(90deg, transparent, hsl(var(--border-strong)), transparent);
+    height: 1px;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full border border-border bg-secondary/40 text-muted-foreground;
+  }
   .text-balance { text-wrap: balance; }
   .text-mono { font-family: 'Geist Mono', ui-monospace, monospace; font-feature-settings: "tnum"; }
   .font-display { font-family: 'Space Grotesk', 'Geist', sans-serif; letter-spacing: -0.02em; }
