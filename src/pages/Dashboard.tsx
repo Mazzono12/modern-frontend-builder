@@ -1,5 +1,5 @@
-import { TrendingUp, TrendingDown, MessageSquare, Users, Send, Clock, ArrowUpRight, Sparkles } from "lucide-react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
+import { TrendingUp, TrendingDown, MessageSquare, Users, Send, Clock, ArrowUpRight, Sparkles, Activity } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, BarChart, Bar, Line, LineChart } from "recharts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CountUp } from "@/components/CountUp";
@@ -20,13 +20,16 @@ const channelData = [
   { name: "NPS", value: 880 },
 ];
 
-type Kpi = { label: string; value: number; suffix?: string; prefix?: string; decimals?: number; delta: string; up: boolean; icon: any };
+const spark = (seed: number) =>
+  Array.from({ length: 12 }, (_, i) => ({ v: 50 + Math.round(Math.sin((i + seed) / 1.6) * 18 + Math.random() * 12) }));
+
+type Kpi = { label: string; value: number; suffix?: string; prefix?: string; decimals?: number; delta: string; up: boolean; icon: any; data: { v: number }[] };
 
 const kpis: Kpi[] = [
-  { label: "Mensagens hoje", value: 24812, delta: "+12,4%", up: true, icon: MessageSquare },
-  { label: "Conversas ativas", value: 1284, delta: "+3,1%", up: true, icon: Users },
-  { label: "Taxa de resposta", value: 94.2, suffix: "%", decimals: 1, delta: "−0,6%", up: false, icon: Send },
-  { label: "Tempo médio (s)", value: 102, suffix: "s", delta: "−18s", up: true, icon: Clock },
+  { label: "Mensagens hoje", value: 24812, delta: "+12,4%", up: true, icon: MessageSquare, data: spark(1) },
+  { label: "Conversas ativas", value: 1284, delta: "+3,1%", up: true, icon: Users, data: spark(3) },
+  { label: "Taxa de resposta", value: 94.2, suffix: "%", decimals: 1, delta: "−0,6%", up: false, icon: Send, data: spark(5) },
+  { label: "Tempo médio (s)", value: 102, suffix: "s", delta: "−18s", up: true, icon: Clock, data: spark(7) },
 ];
 
 const funnelStages = [
