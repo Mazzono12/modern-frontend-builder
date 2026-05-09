@@ -57,9 +57,9 @@ export function AppSidebar() {
   const { pathname } = useLocation();
 
   const linkBase =
-    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+    "group/nav relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
   const active =
-    "bg-gradient-to-r from-primary/15 to-transparent text-foreground font-medium relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-primary before:rounded-r-full before:shadow-glow";
+    "bg-gradient-to-r from-primary/20 via-primary/5 to-transparent text-foreground font-medium relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:bg-gradient-to-b before:from-primary before:to-primary-glow before:rounded-r-full before:shadow-[0_0_12px_hsl(var(--primary)/0.7)]";
 
   const avatarUrl = typeof window !== "undefined" ? localStorage.getItem("wm-avatar") : null;
 
