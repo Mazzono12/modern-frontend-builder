@@ -1,19 +1,14 @@
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
-  MessagesSquare,
   Megaphone,
   Bot,
   PhoneCall,
   BarChart3,
   Users,
-  UsersRound,
-  FileText,
   Settings,
   KanbanSquare,
-  Plug,
   Workflow,
-  Send,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,20 +28,15 @@ import { PlanetLogo } from "@/components/PlanetLogo";
 
 const main = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
-  { title: "Inbox", url: "/app/inbox", icon: MessagesSquare, badge: "12" },
   { title: "Pipeline", url: "/app/pipeline", icon: KanbanSquare },
   { title: "Campanhas", url: "/app/campaigns", icon: Megaphone },
   { title: "Chatbot", url: "/app/chatbot", icon: Bot },
   { title: "Calling & IVR", url: "/app/calling", icon: PhoneCall },
-  { title: "SMS em massa", url: "/app/sms", icon: Send },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
 ];
 
 const secondary = [
   { title: "Contatos", url: "/app/contacts", icon: Users },
-  { title: "Grupos", url: "/app/groups", icon: UsersRound },
-  { title: "Templates", url: "/app/templates", icon: FileText },
-  { title: "Integrações", url: "/app/integrations", icon: Plug },
   { title: "n8n · Agentes", url: "/app/n8n", icon: Workflow },
   { title: "Configurações", url: "/app/settings", icon: Settings },
 ];
