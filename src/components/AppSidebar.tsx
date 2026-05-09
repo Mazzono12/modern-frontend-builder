@@ -87,16 +87,7 @@ export function AppSidebar() {
                         className={`${linkBase} ${isActive ? active : "text-sidebar-foreground"}`}
                       >
                         <item.icon className="size-4 shrink-0" />
-                        {!collapsed && (
-                          <>
-                            <span className="flex-1">{item.title}</span>
-                            {item.badge && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/15 text-primary font-medium text-mono">
-                                {item.badge}
-                              </span>
-                            )}
-                          </>
-                        )}
+                        {!collapsed && <span className="flex-1">{item.title}</span>}
                       </RouterNavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
